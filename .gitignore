@@ -1,0 +1,9 @@
+# Berkas Sementara & Log
+*.tmp
+*.log
+chicken_mascot_base64.txt
+
+# Sistem Operasi
+.DS_Store
+Thumbs.db
+desktop.ini
