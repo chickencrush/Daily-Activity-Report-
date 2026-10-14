@@ -1390,7 +1390,7 @@
     // 1. MANAJEMEN AUTENTIKASI PENGGUNA (LOGIN, REGISTRASI, SESI)
     // =========================================================================
     // KONFIGURASI: tempel URL Web App Google Apps Script (berakhiran /exec)
-    const API_URL = "";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyS9uOowUDezAHpa9clSX5VRMEAqPgZ0n1c7QHJvJddkjvkpdgWPOtSeL3jKwDDEEOM/exec";
 
     async function api(action, payload = {}) {
       if (!API_URL) throw new Error("URL Apps Script belum diisi (konstanta API_URL di index.html).");
