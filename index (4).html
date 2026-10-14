@@ -1,0 +1,2376 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SISTEM LAPORAN HARIAN & PRESENSI MULTI-GERAI</title>
+  <meta name="theme-color" content="#070b1e">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+      animation: spinSlow 12s linear infinite;
+    }
+    /* Bilah Gulir Modern */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #070b1e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #192359;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3b82f6;
+    }
+  </style>
+</head>
+<body class="bg-[#070b1e] text-slate-100 font-sans min-h-screen antialiased select-none overflow-x-hidden">
+
+  <!-- ========================================================================= -->
+  <!-- 1. ANIMASI MEMUAT (LOADING SCREEN) MASKOT AYAM MODERN (SESUAI GAMBAR 2) -->
+  <!-- ========================================================================= -->
+  <div id="loadingScreen" class="fixed inset-0 z-50 bg-[#070b1e]/95 backdrop-blur-md flex flex-col items-center justify-center transition-opacity duration-500">
+    <div class="relative flex items-center justify-center">
+      <div class="absolute w-48 h-48 rounded-full bg-blue-500/10 animate-ping"></div>
+      <div class="absolute w-36 h-36 rounded-full bg-cyan-500/20 animate-pulse"></div>
+
+      <div class="relative z-10 w-32 h-32 p-3 rounded-3xl bg-gradient-to-b from-[#192359] to-[#0f1435] border-2 border-cyan-400/60 shadow-2xl shadow-cyan-500/30 flex items-center justify-center">
+        <div id="loaderMascotContainer" class="w-full h-full flex items-center justify-center animate-bounce" style="animation-duration: 2.2s;">
+          <img src="chicken_mascot.png" alt="Maskot Ayam" onerror="this.onerror=null; this.parentElement.innerHTML=getChickenSvg(90);" class="w-full h-full object-contain">
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 text-center px-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-cyan-400 text-xs font-bold tracking-widest uppercase mb-2">
+        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+        Aplikasi Web Progresif (PWA)
+      </div>
+      <h3 class="text-white font-extrabold text-xl tracking-tight">MEMINDAI SISTEM & MENYINKRONKAN DATA</h3>
+      <p id="loadingStatusText" class="text-slate-400 text-xs mt-1">Menghubungkan ke Basis Data Google Spreadsheet & Sensor GPS Gerai...</p>
+      
+      <div class="w-64 h-1.5 bg-slate-800 rounded-full mt-5 mx-auto overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 w-full animate-pulse"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 2. HALAMAN AUTENTIKASI: LOGIN & REGISTRASI (MUNCUL JIKA BELUM LOGIN) -->
+  <!-- ========================================================================= -->
+  <div id="authScreen" class="min-h-screen w-full flex items-center justify-center p-4 bg-[#070b1e] relative overflow-hidden">
+    <!-- Efek Cahaya Latar Belakang -->
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-10 right-10 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="w-full max-w-md bg-[#0e1436]/90 border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative z-10">
+      
+      <!-- Logo Maskot Ayam di Header Login -->
+      <div class="text-center mb-6">
+        <div class="w-20 h-20 mx-auto mb-3 rounded-2xl bg-gradient-to-b from-blue-900/40 to-slate-900 p-2 border-2 border-cyan-400/50 shadow-lg shadow-cyan-500/20 flex items-center justify-center">
+          <img src="chicken_mascot.png" alt="Maskot Laporan Harian" onerror="this.onerror=null; this.parentElement.innerHTML=getChickenSvg(56);" class="w-full h-full object-contain">
+        </div>
+        <h2 class="text-xl font-black tracking-tight text-white uppercase">DAILY REPORT SYSTEM</h2>
+        <p class="text-xs text-cyan-400 font-semibold mt-0.5">PRESENSI BIOMETRIK & KPI MULTI-GERAI</p>
+      </div>
+
+      <!-- Tab Switcher: Masuk vs Daftar Akun -->
+      <div class="grid grid-cols-2 p-1 bg-slate-950/80 rounded-2xl border border-slate-800 mb-6 text-xs font-bold">
+        <button id="tabAuthLogin" onclick="switchAuthTab('login')" class="py-2.5 rounded-xl transition-all bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md">
+          Masuk Akun
+        </button>
+        <button id="tabAuthRegister" onclick="switchAuthTab('register')" class="py-2.5 rounded-xl transition-all text-slate-400 hover:text-white">
+          Daftar Karyawan
+        </button>
+      </div>
+
+      <!-- FORM A: MASUK (LOGIN) -->
+      <form id="formLogin" onsubmit="handleUserLogin(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Surel Perusahaan (Email)</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+            <input type="email" id="loginEmail" required placeholder="nama@perusahaan.com" autocomplete="username" class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-3 py-2.5 text-white focus:outline-none focus:border-cyan-400">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Kata Sandi (Password)</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+            <input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password" class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-3 py-2.5 text-white focus:outline-none focus:border-cyan-400">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition-all active:scale-95 flex items-center justify-center gap-2">
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          <span>Masuk ke Sistem</span>
+        </button>
+
+        <p class="text-center text-[10px] text-slate-500 pt-2">Belum punya akun? Pilih tab <strong class="text-cyan-400">Daftar Karyawan</strong> di atas untuk mendaftar.</p>
+      </form>
+
+      <!-- FORM B: DAFTAR KARYAWAN BARU (REGISTRASI) -->
+      <form id="formRegister" onsubmit="handleUserRegister(event)" class="space-y-3.5 text-xs hidden">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Nama Lengkap Karyawan</label>
+          <input type="text" id="regNama" required placeholder="Contoh: Budi Santoso" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400">
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Surel Perusahaan (Email)</label>
+          <input type="email" id="regEmail" required placeholder="budi@perusahaan.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Pilih Divisi</label>
+            <select id="regDivisi" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-white focus:outline-none focus:border-cyan-400">
+              <option value="Produksi">Produksi</option>
+              <option value="HRD">HRD</option>
+              <option value="BM">BM</option>
+              <option value="Finance">Finance</option>
+              <option value="QC">QC</option>
+              <option value="DOS">DOS</option>
+              <option value="Logistik">Logistik</option>
+              <option value="Driver">Driver</option>
+              <option value="SM">SM</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Peran Akun</label>
+            <select id="regRole" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-white focus:outline-none focus:border-cyan-400">
+              <option value="KARYAWAN">Karyawan</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Kata Sandi Baru</label>
+          <input type="password" id="regPassword" required placeholder="Minimal 6 karakter" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400">
+        </div>
+
+        <div class="p-2.5 bg-blue-500/10 border border-blue-500/30 rounded-xl text-[10px] text-cyan-300 flex items-start gap-2">
+          <i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5 text-cyan-400"></i>
+          <span>Akun baru akan berstatus <strong>Menunggu Persetujuan (Pending)</strong> dan wajib diverifikasi oleh HRD / Super Admin sebelum dapat masuk.</span>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-teal-600/30 transition-all active:scale-95">
+          Ajukan Pendaftaran Karyawan
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 3. STRUKTUR APLIKASI UTAMA (MUNCUL SETELAH LOGIN) -->
+  <!-- ========================================================================= -->
+  <div id="mainAppLayout" class="hidden min-h-screen flex flex-col md:flex-row relative">
+
+    <!-- BILAH ATAS KHUSUS TAMPILAN MOBILE (STICKY TOPBAR MOBILE DENGAN TOMBOL MENU) -->
+    <div class="md:hidden flex items-center justify-between p-4 bg-[#0a0f2b] border-b border-slate-800 sticky top-0 z-30 backdrop-blur-md">
+      <div class="flex items-center gap-2.5">
+        <!-- Tombol Buka Slide Bar Menu Mobile -->
+        <button onclick="toggleMobileSidebar()" class="p-2 rounded-xl bg-slate-900 border border-slate-700 text-cyan-400 hover:text-white transition active:scale-95">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-slate-900 p-0.5 border border-cyan-400/40 flex items-center justify-center">
+            <img src="chicken_mascot.png" alt="Logo" onerror="this.onerror=null; this.parentElement.innerHTML=getChickenSvg(24);" class="w-full h-full object-contain">
+          </div>
+          <span class="font-extrabold text-xs text-white tracking-wider">DAILY REPORT</span>
+        </div>
+      </div>
+
+      <!-- Profil & Tombol Keluar Cepat di Mobile -->
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-bold text-cyan-400" id="mobileUserRoleBadge">Admin</span>
+        <div class="flex items-center gap-1 shrink-0">
+            <button onclick="openChangePassword()" title="Ganti Sandi" class="p-2 rounded-xl bg-slate-700/40 hover:bg-slate-700/70 text-cyan-300 transition"><i data-lucide="key-round" class="w-4 h-4"></i></button>
+            <button onclick="handleUserLogout()" title="Keluar Akun" class="p-1.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-400 hover:text-rose-200">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+          </div>
+      </div>
+    </div>
+
+    <!-- LATAR GELAP KABUR (BACKDROP) SAAT MENU MOBILE TERBUKA -->
+    <div id="sidebarBackdrop" onclick="closeMobileSidebar()" class="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm hidden md:hidden transition-opacity duration-300"></div>
+
+    <!-- BILAH MENU SAMPING (SLIDE BAR MOBILE & DESKTOP PERMANEN) -->
+    <aside id="mainSidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-[#0a0f2b] border-r border-slate-800 p-5 flex flex-col justify-between shrink-0 transform -translate-x-full md:relative md:translate-x-0 md:w-64 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
+      <div>
+        <!-- Bagian Atas Sidebar dengan Tombol Tutup Silang di Mobile -->
+        <div class="flex items-center justify-between px-2 py-2 mb-5 bg-gradient-to-r from-blue-900/30 to-purple-900/20 rounded-2xl border border-blue-500/20 shadow-lg">
+          <div class="flex items-center gap-2.5">
+            <div class="w-10 h-10 rounded-xl bg-slate-900 p-1 border border-cyan-400/40 shadow-md shadow-cyan-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+              <img src="chicken_mascot.png" alt="Logo" onerror="this.onerror=null; this.parentElement.innerHTML=getChickenSvg(32);" class="w-full h-full object-contain">
+            </div>
+            <div>
+              <h2 class="text-xs font-black tracking-wider text-white">DAILY REPORT</h2>
+              <p class="text-[9px] text-cyan-400 font-semibold tracking-wide">MULTI-GERAI & KPI</p>
+            </div>
+          </div>
+          <!-- Tombol Tutup (X) Khusus Mobile -->
+          <button onclick="closeMobileSidebar()" class="md:hidden p-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-800/80 border border-slate-700">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- Daftar Menu Navigasi Bahasa Indonesia KBBI -->
+        <nav class="space-y-1.5" id="navTabs">
+          <button onclick="switchTab('overview')" id="tab-overview" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-blue-400/30">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <span>Ringkasan Dasbor</span>
+          </button>
+
+          <button onclick="switchTab('attendance')" id="tab-attendance" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800/40">
+            <i data-lucide="camera" class="w-4 h-4"></i>
+            <span>Presensi Biometrik</span>
+          </button>
+
+          <button onclick="switchTab('dept-report')" id="tab-dept-report" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800/40">
+            <i data-lucide="pie-chart" class="w-4 h-4 text-cyan-400"></i>
+            <span>Laporan Per Divisi</span>
+          </button>
+
+          <button onclick="switchTab('outlets')" id="tab-outlets" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800/40">
+            <i data-lucide="map-pin" class="w-4 h-4"></i>
+            <span>Kelola Gerai & Cabang</span>
+          </button>
+
+          <button onclick="switchTab('kpi')" id="tab-kpi" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800/40">
+            <i data-lucide="award" class="w-4 h-4"></i>
+            <span>Analisis KPI Karyawan</span>
+          </button>
+
+          <button onclick="switchTab('reports')" id="tab-reports" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800/40">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            <span>Laporan Kerja (Kanban)</span>
+          </button>
+
+          <button onclick="switchTab('leaves')" id="tab-leaves" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800/40">
+            <i data-lucide="plane" class="w-4 h-4"></i>
+            <span>Perizinan & Cuti</span>
+          </button>
+
+          <button onclick="switchTab('employee')" id="tab-employee" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800/40">
+            <i data-lucide="users" class="w-4 h-4"></i>
+            <span>Manajemen Karyawan</span>
+          </button>
+
+          <button onclick="switchTab('settings')" id="tab-settings" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800/40">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+            <span>Pengaturan Sistem</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Profil Pengguna Masuk & Tombol Keluar (Bawah Sidebar) -->
+      <div class="mt-4 pt-3 border-t border-slate-800/80">
+        <div class="flex items-center justify-between p-2.5 rounded-2xl bg-slate-900/80 border border-slate-800">
+          <div class="flex items-center gap-2.5 overflow-hidden">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center font-bold text-white text-xs shrink-0" id="userAvatarText">
+              --
+            </div>
+            <div class="overflow-hidden">
+              <p class="text-xs font-bold text-white truncate" id="sidebarUserName">-</p>
+              <p class="text-[10px] text-cyan-400 truncate" id="sidebarUserDept">-</p>
+            </div>
+          </div>
+          <button onclick="handleUserLogout()" title="Keluar Akun" class="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- AREA KERJA KONTEN UTAMA DASBOR -->
+    <main class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6">
+
+      <!-- BILAH STATUS PERAN RBAC PENGGUNA (MEMPERJELAS PERBEDAAN HAK AKSES SISTEM) -->
+      <div id="rbacNoticeBar" class="p-3.5 rounded-2xl bg-gradient-to-r from-blue-900/40 via-purple-900/30 to-slate-900 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-lg backdrop-blur-md">
+        <div class="flex items-center gap-3">
+          <div id="rbacRoleIconBox" class="p-2 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40 shrink-0">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-slate-400 font-medium">Masuk Sebagai:</span>
+              <span id="rbacUserNameText" class="font-bold text-white">Super Administrator</span>
+              <span id="rbacRoleBadgePill" class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40">SUPER ADMIN</span>
+            </div>
+            <p id="rbacRoleDescText" class="text-[11px] text-slate-300 mt-0.5">Akses Penuh: Kelola Titik Gerai, Hak Akses Pengguna, Rekap Presensi & Seluruh Divisi</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="text-[10px] text-slate-400 hidden sm:inline" id="rbacAllowedTabsCountText">9 Menu Aktif</span>
+          <button onclick="handleUserLogout()" class="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-[11px] font-semibold flex items-center gap-1.5 transition active:scale-95">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span>Ganti Akun / Keluar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- BILAH ATAS DASBOR DESKTOP & PROFIL PENGGUNA -->
+      <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white uppercase flex items-center gap-2">
+            <span>DASBOR PRESENSI KARYAWAN</span>
+          </h1>
+          <p class="text-xs text-slate-400">Pantau, Analisis, dan Tingkatkan Kinerja Presensi & KPI Perusahaan</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="bg-[#101738] border border-slate-700/60 px-3.5 py-2 rounded-xl text-xs text-slate-300 flex items-center gap-2 shadow-sm">
+            <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i>
+            <span id="currentDateDisplay">Hari Ini</span>
+          </div>
+          <button onclick="reloadDashboardData()" class="bg-[#101738] hover:bg-slate-800 border border-slate-700/60 px-3 py-2 rounded-xl text-xs text-slate-300 flex items-center gap-1.5 transition">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span>Atur Ulang Filter</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- BANNER KUTIPAN MOTIVASI HARIAN -->
+      <div class="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-950/70 via-indigo-950/80 to-purple-950/70 border border-indigo-500/40 shadow-xl backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-slate-900/90 p-1.5 border border-cyan-400/50 shadow-md shadow-cyan-500/20 flex items-center justify-center shrink-0">
+            <img src="chicken_mascot.png" alt="Maskot" onerror="this.onerror=null; this.parentElement.innerHTML=getChickenSvg(34);" class="w-full h-full object-contain">
+          </div>
+          <div>
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-black tracking-wider uppercase border border-cyan-500/30">KUTIPAN MOTIVASI HARI INI</span>
+              <span class="text-[10px] text-slate-400" id="quoteCategory">Inspirasi & Kedisiplinan Kerja</span>
+            </div>
+            <p id="dailyQuoteText" class="text-xs sm:text-sm font-semibold text-white italic">"Disiplin adalah jembatan penghubung antara impian dan pencapaian target kerja."</p>
+            <p id="dailyQuoteAuthor" class="text-[10px] text-cyan-400 font-medium mt-0.5">— Jim Rohn</p>
+          </div>
+        </div>
+
+        <button onclick="nextQuote()" title="Ganti Kutipan" class="shrink-0 px-3.5 py-2 bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold border border-slate-700/60 flex items-center gap-1.5 transition">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Kutipan Baru ↻</span>
+        </button>
+      </div>
+
+      <!-- ======================================================================= -->
+      <!-- TAMPILAN A: RINGKASAN DASBOR (BERDIFERENSIASI RBAC PERAN) -->
+      <!-- ======================================================================= -->
+      <div id="view-overview" class="space-y-6">
+
+        <!-- ===================================================================== -->
+        <!-- A.1 DASBOR ANALITIK PERUSAHAAN (SUPER ADMIN / HRD / BRANCH MANAGER) -->
+        <!-- ===================================================================== -->
+        <div id="adminOverviewSection" class="space-y-6">
+          <!-- 5 KARTU METRIK UTAMA -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          
+          <div class="p-4 rounded-2xl bg-gradient-to-b from-blue-600/30 to-blue-500/10 bg-[#0e1436] border border-blue-500/30 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider">TOTAL KARYAWAN</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 text-blue-400">
+                <i data-lucide="users" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <span class="text-2xl font-black text-white" id="stat-total">0</span>
+              <p class="text-[10px] text-slate-400 mt-0.5">100% vs bulan lalu</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-gradient-to-b from-emerald-600/30 to-emerald-500/10 bg-[#0e1436] border border-emerald-500/30 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider">HADIR</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 text-emerald-400">
+                <i data-lucide="calendar-check" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <span class="text-2xl font-black text-white" id="stat-present">0</span>
+              <p class="text-[10px] text-emerald-400 font-semibold mt-0.5">75,00% dari total</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-gradient-to-b from-amber-600/30 to-amber-500/10 bg-[#0e1436] border border-amber-500/30 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider">ALPA / TIDAK HADIR</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 text-amber-400">
+                <i data-lucide="user-x" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <span class="text-2xl font-black text-white" id="stat-absent">0</span>
+              <p class="text-[10px] text-slate-400 mt-0.5">15,63% dari total</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-gradient-to-b from-purple-600/30 to-purple-500/10 bg-[#0e1436] border border-purple-500/30 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider">TERLAMBAT</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 text-purple-400">
+                <i data-lucide="clock" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <span class="text-2xl font-black text-white" id="stat-late">0</span>
+              <p class="text-[10px] text-slate-400 mt-0.5">9,38% dari total</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-gradient-to-b from-cyan-600/30 to-cyan-500/10 bg-[#0e1436] border border-cyan-500/30 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider">CUTI / IZIN</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 text-cyan-400">
+                <i data-lucide="briefcase" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <span class="text-2xl font-black text-white" id="stat-leave">0</span>
+              <p class="text-[10px] text-slate-400 mt-0.5">7,81% dari total</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BAGIAN GRAFIK & TINGKAT KEHADIRAN DIVISI -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <!-- Ikhtisar Tren Kehadiran -->
+          <div class="p-5 rounded-2xl bg-[#0e1436]/90 border border-slate-800 shadow-xl flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xs font-bold text-white tracking-wider">IKHTISAR TREN KEHADIRAN</h3>
+              <div class="flex gap-2 text-[9px]">
+                <span class="text-emerald-400">● Hadir</span>
+                <span class="text-rose-400">● Alpa</span>
+                <span class="text-amber-400">● Terlambat</span>
+                <span class="text-cyan-400">● Cuti</span>
+              </div>
+            </div>
+            <div class="h-44 w-full flex items-end">
+              <svg viewBox="0 0 320 120" class="w-full h-full">
+                <path d="M 0 85 Q 40 45 90 60 T 180 30 T 270 45 T 320 35" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+                <path d="M 0 98 Q 40 90 90 95 T 180 85 T 270 90 T 320 88" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
+                <path d="M 0 108 Q 40 105 90 102 T 180 108 T 270 105 T 320 106" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round"/>
+                <path d="M 0 114 Q 40 112 90 110 T 180 114 T 270 112 T 320 113" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="flex justify-between text-[9px] text-slate-500 pt-2 border-t border-slate-800">
+              <span>1 Mei</span><span>8 Mei</span><span>15 Mei</span><span>22 Mei</span><span>31 Mei</span>
+            </div>
+          </div>
+
+          <!-- Rekapitulasi Presensi (Donut Summary) -->
+          <div class="p-5 rounded-2xl bg-[#0e1436]/90 border border-slate-800 shadow-xl flex flex-col justify-between">
+            <h3 class="text-xs font-bold text-white tracking-wider mb-2">REKAPITULASI PRESENSI</h3>
+            <div class="flex items-center justify-center my-2 relative">
+              <div class="w-32 h-32 rounded-full border-8 border-emerald-500 border-t-amber-500 border-r-rose-500 border-l-cyan-500 flex items-center justify-center shadow-inner">
+                <div class="text-center">
+                  <span class="text-xl font-black text-white">128</span>
+                  <p class="text-[9px] text-slate-400">Total Karyawan</p>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-[10px] text-slate-400 pt-2 border-t border-slate-800">
+              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Hadir: 75,00% (96)</div>
+              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-400"></span> Alpa: 15,63% (20)</div>
+              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span> Terlambat: 9,38% (12)</div>
+              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-cyan-400"></span> Cuti: 7,81% (10)</div>
+            </div>
+          </div>
+
+          <!-- Tingkat Kehadiran per Divisi -->
+          <div class="p-5 rounded-2xl bg-[#0e1436]/90 border border-slate-800 shadow-xl">
+            <h3 class="text-xs font-bold text-white tracking-wider mb-4">TINGKAT KEHADIRAN PER DIVISI</h3>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between text-xs">
+                <span class="w-20 text-slate-300 font-medium text-[11px]">HRD</span>
+                <div class="flex-1 mx-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-400 rounded-full" style="width: 92%"></div>
+                </div>
+                <span class="w-8 text-right font-bold text-white text-[11px]">92%</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="w-20 text-slate-300 font-medium text-[11px]">Finance</span>
+                <div class="flex-1 mx-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-400 rounded-full" style="width: 88%"></div>
+                </div>
+                <span class="w-8 text-right font-bold text-white text-[11px]">88%</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="w-20 text-slate-300 font-medium text-[11px]">DOS / IT</span>
+                <div class="flex-1 mx-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-400 rounded-full" style="width: 85%"></div>
+                </div>
+                <span class="w-8 text-right font-bold text-white text-[11px]">85%</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="w-20 text-slate-300 font-medium text-[11px]">QC</span>
+                <div class="flex-1 mx-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-400 rounded-full" style="width: 82%"></div>
+                </div>
+                <span class="w-8 text-right font-bold text-white text-[11px]">82%</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="w-20 text-slate-300 font-medium text-[11px]">Logistik</span>
+                <div class="flex-1 mx-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-amber-400 rounded-full" style="width: 78%"></div>
+                </div>
+                <span class="w-8 text-right font-bold text-white text-[11px]">78%</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="w-20 text-slate-300 font-medium text-[11px]">Produksi</span>
+                <div class="flex-1 mx-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-rose-500 rounded-full" style="width: 75%"></div>
+                </div>
+                <span class="w-8 text-right font-bold text-white text-[11px]">75%</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="w-20 text-slate-300 font-medium text-[11px]">Driver</span>
+                <div class="flex-1 mx-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-rose-500 rounded-full" style="width: 70%"></div>
+                </div>
+                <span class="w-8 text-right font-bold text-white text-[11px]">70%</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- PRESENSI TERKINI & HARI KERJA -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <div class="lg:col-span-2 p-5 rounded-2xl bg-[#0e1436]/90 border border-slate-800 shadow-xl">
+            <h3 class="text-xs font-bold text-white tracking-wider mb-4">PRESENSI KARYAWAN TERKINI</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="text-slate-400 border-b border-slate-800 pb-2 text-[10px]">
+                    <th class="py-2">ID KARYAWAN</th>
+                    <th class="py-2">NAMA KARYAWAN</th>
+                    <th class="py-2">LOKASI GERAI</th>
+                    <th class="py-2">DIVISI</th>
+                    <th class="py-2">STATUS</th>
+                    <th class="py-2">JAM MASUK</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60" id="recentTableBody">
+                  <tr>
+                    <td colspan="6" class="py-8 text-center text-slate-500 text-xs">
+                      <i data-lucide="database" class="w-8 h-8 mx-auto mb-2 text-slate-700"></i>
+                      <p>Data presensi akan tampil setelah terhubung ke Google Spreadsheet.</p>
+                      <p class="text-[10px] mt-1">Pastikan URL Apps Script sudah dikonfigurasi di Pengaturan Sistem.</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-[#0e1436]/90 border border-slate-800 shadow-xl flex flex-col justify-between">
+            <h3 class="text-xs font-bold text-white tracking-wider mb-4">KEHADIRAN MENURUT HARI KERJA</h3>
+            <div class="flex items-end justify-between h-44 gap-2 pt-4 px-2">
+              <div class="flex flex-col items-center gap-1.5 flex-1">
+                <span class="text-[9px] font-bold text-slate-300">96%</span>
+                <div class="w-full bg-slate-800 rounded-t-lg h-32 flex items-end"><div class="w-full bg-emerald-400 rounded-t-lg" style="height: 96%"></div></div>
+                <span class="text-[10px] text-slate-400">Sen</span>
+              </div>
+              <div class="flex flex-col items-center gap-1.5 flex-1">
+                <span class="text-[9px] font-bold text-slate-300">94%</span>
+                <div class="w-full bg-slate-800 rounded-t-lg h-32 flex items-end"><div class="w-full bg-emerald-400 rounded-t-lg" style="height: 94%"></div></div>
+                <span class="text-[10px] text-slate-400">Sel</span>
+              </div>
+              <div class="flex flex-col items-center gap-1.5 flex-1">
+                <span class="text-[9px] font-bold text-slate-300">92%</span>
+                <div class="w-full bg-slate-800 rounded-t-lg h-32 flex items-end"><div class="w-full bg-emerald-400 rounded-t-lg" style="height: 92%"></div></div>
+                <span class="text-[10px] text-slate-400">Rab</span>
+              </div>
+              <div class="flex flex-col items-center gap-1.5 flex-1">
+                <span class="text-[9px] font-bold text-slate-300">90%</span>
+                <div class="w-full bg-slate-800 rounded-t-lg h-32 flex items-end"><div class="w-full bg-emerald-400 rounded-t-lg" style="height: 90%"></div></div>
+                <span class="text-[10px] text-slate-400">Kam</span>
+              </div>
+              <div class="flex flex-col items-center gap-1.5 flex-1">
+                <span class="text-[9px] font-bold text-slate-300">88%</span>
+                <div class="w-full bg-slate-800 rounded-t-lg h-32 flex items-end"><div class="w-full bg-amber-400 rounded-t-lg" style="height: 88%"></div></div>
+                <span class="text-[10px] text-slate-400">Jum</span>
+              </div>
+              <div class="flex flex-col items-center gap-1.5 flex-1">
+                <span class="text-[9px] font-bold text-slate-300">45%</span>
+                <div class="w-full bg-slate-800 rounded-t-lg h-32 flex items-end"><div class="w-full bg-rose-500 rounded-t-lg" style="height: 45%"></div></div>
+                <span class="text-[10px] text-slate-400">Sab</span>
+              </div>
+              <div class="flex flex-col items-center gap-1.5 flex-1">
+                <span class="text-[9px] font-bold text-slate-300">30%</span>
+                <div class="w-full bg-slate-800 rounded-t-lg h-32 flex items-end"><div class="w-full bg-rose-500 rounded-t-lg" style="height: 30%"></div></div>
+                <span class="text-[10px] text-slate-400">Min</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BILAH AKSI EKSPOR BAWAH -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-gradient-to-r from-blue-950/60 to-purple-950/60 border border-indigo-500/30">
+          <div class="flex items-center gap-2 text-xs text-amber-300">
+            <span>★ Data disinkronkan secara otomatis</span>
+            <span class="text-slate-400">| Tetap konsisten, tetap produktif!</span>
+          </div>
+          <button onclick="exportDeptReportToCSV()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-500/30 transition">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Ekspor Laporan (Excel / CSV)</span>
+          </button>
+        </div>
+      </div>
+      <!-- AKHIR BAGIAN A.1 ADMIN OVERVIEW SECTION -->
+
+      <!-- ======================================================================= -->
+      <!-- A.2 DASBOR MANDIRI KARYAWAN (KHUSUS TAMPIL JIKA LOGIN SEBAGAI KARYAWAN) -->
+      <!-- ======================================================================= -->
+      <div id="employeeOverviewSection" class="hidden space-y-6">
+
+        <!-- Kartu Sambutan & Status Shift Karyawan -->
+        <div class="p-5 rounded-2xl bg-gradient-to-r from-blue-900/60 via-indigo-900/40 to-slate-900 border border-cyan-500/30 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shrink-0">
+              <i data-lucide="user-check" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-blue-500/20 text-cyan-300 text-[10px] font-black tracking-wider uppercase border border-blue-500/30">DASBOR KARYAWAN MANDIRI</span>
+                <span class="text-xs text-slate-400" id="empCardDept">Divisi: -</span>
+              </div>
+              <h2 class="text-lg font-black text-white mt-0.5" id="empCardWelcome">Selamat Bertugas</h2>
+              <p class="text-xs text-slate-300">Jam Shift: <span class="text-emerald-400 font-bold">08.30 - 17.00 WIB</span> • Status Hari Ini: <span class="text-emerald-400 font-bold" id="empAttendanceStatusText">Presensi Tercatat (08.55 WIB di Gerai Kemang)</span></p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="switchTab('attendance')" class="px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 rounded-xl text-xs font-bold text-white shadow-lg shadow-cyan-600/30 flex items-center gap-2 transition active:scale-95">
+              <i data-lucide="camera" class="w-4 h-4"></i>
+              <span>Presensi Masuk / Pulang</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Kartu Metrik Pribadi Karyawan -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- 1. Kehadiran Bulan Ini -->
+          <div class="p-4 rounded-2xl bg-[#0e1436] border border-emerald-500/30 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">KEHADIRAN SAYA</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 text-emerald-400">
+                <i data-lucide="calendar-check" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <span class="text-2xl font-black text-white" id="empHadirCount">21 / 22 <span class="text-xs text-slate-400 font-normal">Hari</span></span>
+              <p class="text-[10px] text-emerald-400 font-semibold mt-0.5">95,45% • 1x Terlambat (12 mnt)</p>
+            </div>
+          </div>
+
+          <!-- 2. Tugas Kerja Selesai -->
+          <div class="p-4 rounded-2xl bg-[#0e1436] border border-cyan-500/30 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">TUGAS SELESAI</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 text-cyan-400">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <span class="text-2xl font-black text-white" id="empTaskCount">23 / 25 <span class="text-xs text-slate-400 font-normal">Tugas</span></span>
+              <p class="text-[10px] text-cyan-400 font-semibold mt-0.5">92,0% Terselesaikan di Kanban</p>
+            </div>
+          </div>
+
+          <!-- 3. Skor KPI Pribadi -->
+          <div class="p-4 rounded-2xl bg-[#0e1436] border border-amber-500/30 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">SKOR KPI PRIBADI</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 text-amber-400">
+                <i data-lucide="award" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <div class="flex items-baseline gap-2">
+                <span class="text-2xl font-black text-white" id="empKpiScore">90,2%</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">Grade A</span>
+              </div>
+              <p class="text-[10px] text-amber-300 font-medium mt-0.5">Sangat Memuaskan (Memenuhi Syarat Bonus)</p>
+            </div>
+          </div>
+
+          <!-- 4. Sisa Jatah Cuti -->
+          <div class="p-4 rounded-2xl bg-[#0e1436] border border-purple-500/30 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">SISA CUTI TAHUNAN</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 text-purple-400">
+                <i data-lucide="plane" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <span class="text-2xl font-black text-white">10 <span class="text-xs text-slate-400 font-normal">Hari</span></span>
+              <p class="text-[10px] text-purple-300 font-medium mt-0.5">Terpakai: 2 dari 12 hari/tahun</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Riwayat Presensi Pribadi Karyawan -->
+        <div class="p-5 rounded-2xl bg-[#0e1436]/90 border border-slate-800 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-xs font-bold text-white tracking-wider">RIWAYAT PRESENSI PRIBADI ANDA (7 HARI TERAKHIR)</h3>
+              <p class="text-[11px] text-slate-400">Tercatat di Google Spreadsheet dengan verifikasi koordinat GPS gerai & swafoto live</p>
+            </div>
+            <button onclick="switchTab('reports')" class="text-xs text-cyan-400 font-bold hover:underline flex items-center gap-1">
+              <span>Kelola Kanban Tugas</span>
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="text-slate-400 border-b border-slate-800 pb-2 text-[10px]">
+                  <th class="py-2">TANGGAL</th>
+                  <th class="py-2">LOKASI GERAI</th>
+                  <th class="py-2">JAM MASUK</th>
+                  <th class="py-2">JARAK KE GERAI</th>
+                  <th class="py-2">METODE VALIDASI</th>
+                  <th class="py-2">STATUS KEHADIRAN</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60" id="empHistoryBody">
+                <tr><td colspan="6" class="py-6 text-center text-slate-500">Belum ada riwayat presensi.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Aksi Cepat Mandiri Karyawan -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="p-4 rounded-2xl bg-gradient-to-r from-blue-950/60 to-indigo-950/60 border border-blue-500/30 flex items-center justify-between">
+            <div>
+              <h4 class="font-bold text-white text-xs">Papan Kanban Tugas Harian</h4>
+              <p class="text-[11px] text-slate-400">Perbarui rencana, proses, dan pekerjaan selesai hari ini</p>
+            </div>
+            <button onclick="switchTab('reports')" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition">
+              Buka Kanban →
+            </button>
+          </div>
+          <div class="p-4 rounded-2xl bg-gradient-to-r from-purple-950/60 to-indigo-950/60 border border-purple-500/30 flex items-center justify-between">
+            <div>
+              <h4 class="font-bold text-white text-xs">Pengajuan Izin & Cuti Daring</h4>
+              <p class="text-[11px] text-slate-400">Ajukan cuti tahunan atau izin sakit dengan surat dokter</p>
+            </div>
+            <button onclick="switchTab('leaves')" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition">
+              Ajukan Cuti →
+            </button>
+          </div>
+        </div>
+
+      </div>
+      <!-- AKHIR BAGIAN A.2 EMPLOYEE OVERVIEW SECTION -->
+    </div>
+
+      <!-- ======================================================================= -->
+      <!-- TAMPILAN B: LAPORAN PRESENSI PER DIVISI -->
+      <!-- ======================================================================= -->
+      <div id="view-dept-report" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-black uppercase tracking-wide">Laporan Presensi Per Divisi</h2>
+            <p class="text-xs text-slate-400">Penyaringan dan pemantauan data kehadiran mendalam per satuan kerja</p>
+          </div>
+          <button onclick="exportDeptReportToCSV()" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-teal-600/30 transition">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+            <span>Unduh Rekap Divisi Ini (Excel)</span>
+          </button>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-[#0e1436] border border-slate-800 shadow-xl grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1.5 flex items-center gap-1.5">
+              <i data-lucide="filter" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>Pilih Divisi / Satuan Kerja:</span>
+            </label>
+            <select id="selectDeptFilter" onchange="filterDeptReport(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-400 font-semibold">
+              <option value="Semua">Semua Divisi (9 Divisi)</option>
+              <option value="HRD">HRD (Human Resource)</option>
+              <option value="BM">BM (Branch Manager)</option>
+              <option value="Finance">Finance (Keuangan)</option>
+              <option value="QC">QC (Quality Control)</option>
+              <option value="DOS">DOS (Distribution Operations)</option>
+              <option value="Logistik">Logistik & Pergudangan</option>
+              <option value="Produksi">Produksi</option>
+              <option value="Driver">Driver / Pengemudi</option>
+              <option value="SM">SM (Store Manager)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1.5">Periode Presensi:</label>
+            <input type="date" id="deptDateFilter" value="" onchange="loadDeptReport()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400">
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1.5">Status Kehadiran:</label>
+            <select id="selectStatusFilter" onchange="filterDeptReport(document.getElementById('selectDeptFilter').value)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-400">
+              <option value="Semua">Semua Status</option>
+              <option value="Hadir">Hadir Tepat Waktu</option>
+              <option value="Terlambat">Terlambat</option>
+              <option value="Cuti">Izin / Cuti</option>
+              <option value="Alpa">Alpa / Mangkir</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="p-4 rounded-2xl bg-[#0e1436] border border-blue-500/30">
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Total Personel Divisi</span>
+            <h4 class="text-xl font-black text-white mt-1" id="deptCardTotal">0 Orang</h4>
+            <p class="text-[10px] text-cyan-400 mt-0.5" id="deptCardName">Divisi Terpilih</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-[#0e1436] border border-emerald-500/30">
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Hadir Tepat Waktu</span>
+            <h4 class="text-xl font-black text-emerald-400 mt-1" id="deptCardPresent">0 Orang</h4>
+            <p class="text-[10px] text-emerald-400 mt-0.5">83,3% dari divisi</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-[#0e1436] border border-amber-500/30">
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Terlambat</span>
+            <h4 class="text-xl font-black text-amber-400 mt-1" id="deptCardLate">0 Orang</h4>
+            <p class="text-[10px] text-amber-400 mt-0.5">11,1% dari divisi</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-[#0e1436] border border-rose-500/30">
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Alpa / Izin</span>
+            <h4 class="text-xl font-black text-rose-400 mt-1" id="deptCardAbsent">0 Orang</h4>
+            <p class="text-[10px] text-rose-400 mt-0.5">5,6% dari divisi</p>
+          </div>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-[#0e1436]/90 border border-slate-800 shadow-xl overflow-x-auto">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xs font-bold text-white tracking-wider">LOG PRESENSI ANGGOTA DIVISI</h3>
+            <span class="text-[11px] text-slate-400" id="deptReportRowCount">Menampilkan data</span>
+          </div>
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="text-slate-400 border-b border-slate-800 pb-2 text-[10px]">
+                <th class="py-2">ID KARYAWAN</th>
+                <th class="py-2">NAMA LENGKAP</th>
+                <th class="py-2">DIVISI</th>
+                <th class="py-2">LOKASI GERAI</th>
+                <th class="py-2">JAM MASUK</th>
+                <th class="py-2">JARAK KE GERAI</th>
+                <th class="py-2">STATUS KEHADIRAN</th>
+                <th class="py-2 text-right">BUKTI SWAFOTO</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60" id="deptReportTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ======================================================================= -->
+      <!-- TAMPILAN C: PRESENSI BIOMETRIK LIVE & GEOFENCING MULTI-GERAI -->
+      <!-- ======================================================================= -->
+      <div id="view-attendance" class="hidden max-w-xl mx-auto space-y-6">
+        <div class="p-6 rounded-2xl bg-[#0e1436] border border-blue-900/40 shadow-2xl">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="map-pin" class="text-cyan-400 w-5 h-5 animate-pulse"></i>
+              <h3 class="font-bold text-lg text-white">Presensi Biometrik & Multi-Gerai</h3>
+            </div>
+            <div id="distanceBadge" class="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              Mendeteksi Jarak...
+            </div>
+          </div>
+
+          <div class="mb-4 p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-slate-300 font-semibold flex items-center gap-1.5">
+                <i data-lucide="store" class="w-3.5 h-3.5 text-cyan-400"></i>
+                <span>Pilih Gerai Penugasan / Bertugas:</span>
+              </label>
+              <span id="nearestAutoText" class="text-[10px] text-cyan-400 font-bold">Deteksi Otomatis Terdekat</span>
+            </div>
+            <select id="selectAttendanceOutlet" onchange="handleSelectOutletChange(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-cyan-400">
+            </select>
+          </div>
+
+          <div class="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border-2 border-slate-700/60 flex items-center justify-center">
+            <video id="liveVideo" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100"></video>
+            
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div class="w-52 h-52 border-2 border-dashed border-cyan-400/40 rounded-full animate-spin-slow"></div>
+              <div class="absolute w-36 h-36 border border-blue-500/30 rounded-full"></div>
+              <div class="absolute text-[10px] text-cyan-400/60 bottom-3 tracking-widest uppercase">Kamera Langsung Sah • Antipemalsuan</div>
+            </div>
+          </div>
+
+          <div id="geoAlertBanner" class="mt-4 p-3.5 bg-rose-500/15 border border-rose-500/40 rounded-xl flex items-start gap-3 text-rose-300 text-xs hidden">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400 shrink-0 mt-0.5"></i>
+            <div>
+              <p class="font-bold text-rose-200">Tombol Terkunci (Di Luar Jangkauan Gerai)!</p>
+              <p id="geoAlertMessage">Jarak Anda melebihi batas radius gerai. Tombol presensi otomatis dinonaktifkan.</p>
+            </div>
+          </div>
+
+          <div class="mt-4 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between">
+            <div>
+              <span class="text-slate-400">Gerai Aktif:</span>
+              <span class="font-mono text-cyan-400" id="currentOutletDisplay">-</span>
+            </div>
+            <span id="gpsAccText" class="text-[10px] text-slate-400">GPS: mencari...</span>
+          </div>
+
+          <button id="btnCheckIn" onclick="handleDoCheckIn()" class="w-full mt-5 py-4 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-cyan-500/25 active:scale-95">
+            <i data-lucide="camera" class="w-5 h-5"></i>
+            <span id="btnCheckInText">Ambil Swafoto & Rekam Kehadiran</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ======================================================================= -->
+      <!-- TAMPILAN D: KELOLA GERAI & CABANG -->
+      <!-- ======================================================================= -->
+      <div id="view-outlets" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-black uppercase tracking-wide">Kelola Titik Lokasi Gerai & Cabang</h2>
+            <p class="text-xs text-slate-400">Daftarkan gerai/kantor cabang tempat karyawan diizinkan melakukan presensi</p>
+          </div>
+          <button onclick="toggleOutletForm()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/30">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span id="btnToggleOutletText">Tambah Titik Gerai Baru</span>
+          </button>
+        </div>
+
+        <div id="outletFormCard" class="hidden p-6 rounded-2xl bg-[#0e1436] border border-cyan-500/30 shadow-2xl">
+          <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2">
+            <i data-lucide="map-pin" class="w-4 h-4 text-cyan-400"></i>
+            <span>Formulir Tambah Titik Gerai / Cabang Manajemen</span>
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Titik koordinat ini akan langsung aktif sebagai batas radius presensi karyawan</p>
+
+          <form id="newOutletForm" onsubmit="handleAddNewOutlet(event)" class="space-y-4 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Nama Gerai / Cabang *</label>
+                <input type="text" id="outName" required placeholder="Contoh: Gerai Kemang Village" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-400">
+              </div>
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Alamat Singkat / Wilayah</label>
+                <input type="text" id="outAddress" placeholder="Contoh: Jakarta Selatan" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-400">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Garis Lintang (Latitude) *</label>
+                <input type="number" step="any" id="outLat" required placeholder="-6.2088" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-400">
+              </div>
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Garis Bujur (Longitude) *</label>
+                <input type="number" step="any" id="outLng" required placeholder="106.8456" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-400">
+              </div>
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Radius Toleransi Maksimal (Meter) *</label>
+                <input type="number" id="outRadius" value="100" required placeholder="100" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-400">
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <button type="button" onclick="getCurrentGpsForOutlet()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl font-bold flex items-center gap-1.5 border border-slate-700">
+                <i data-lucide="locate-fixed" class="w-4 h-4 text-cyan-400"></i>
+                <span>Gunakan Koordinat GPS Saya Saat Ini</span>
+              </button>
+              <div class="flex gap-2">
+                <button type="button" onclick="toggleOutletForm()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold">Batal</button>
+                <button type="submit" class="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl font-bold text-white shadow-lg shadow-indigo-600/30">
+                  Simpan Gerai Baru
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-[#0e1436]/90 border border-slate-800 shadow-xl">
+          <h3 class="text-xs font-bold text-white tracking-wider mb-4">DAFTAR GERAI & TITIK PRESENSI RESMI</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="text-slate-400 border-b border-slate-800 pb-2 text-[10px]">
+                  <th class="py-2">KODE GERAI</th>
+                  <th class="py-2">NAMA GERAI / CABANG</th>
+                  <th class="py-2">WILAYAH</th>
+                  <th class="py-2">KOORDINAT (LAT, LNG)</th>
+                  <th class="py-2">BATAS RADIUS</th>
+                  <th class="py-2">STATUS</th>
+                  <th class="py-2 text-right">TINDAKAN</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60" id="outletsTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================================================================= -->
+      <!-- TAMPILAN E: ANALISIS KPI KARYAWAN -->
+      <!-- ======================================================================= -->
+      <div id="view-kpi" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-black uppercase tracking-wide">Analisis KPI Karyawan (Indikator Kinerja Utama)</h2>
+            <p class="text-xs text-slate-400">Penilaian kinerja objektif otomatis berbasis Google Spreadsheet (Bobot 4 Pilar)</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="month" id="kpiPeriod" onchange="loadKpi()" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400">
+            <span id="kpiAvgBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-500/20 text-slate-300 border border-slate-500/30">Rata-rata KPI: -</span>
+          </div>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-gradient-to-r from-blue-950/60 via-slate-900 to-indigo-950/60 border border-blue-500/30 shadow-lg text-xs space-y-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="calculator" class="w-4 h-4 text-cyan-400"></i>
+            <h3 class="font-bold text-white text-sm">Rumus Penilaian KPI Google Spreadsheet Resmi</h3>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-[11px]">
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+              <span class="font-bold text-emerald-400 block mb-1">1. Kehadiran & Ketepatan (30%)</span>
+              <p class="text-slate-300">Skor = (Hadir / Hari Kerja * 100) - (Terlambat * 2)</p>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+              <span class="font-bold text-cyan-400 block mb-1">2. Laporan Kerja Tuntas (30%)</span>
+              <p class="text-slate-300">Skor = (Tugas Selesai / Target Tugas * 100)</p>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+              <span class="font-bold text-amber-400 block mb-1">3. Target Output Divisi (30%)</span>
+              <p class="text-slate-300">Skor = Nilai Realisasi Target Divisi (0 - 100)</p>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+              <span class="font-bold text-purple-400 block mb-1">4. Disiplin & Kepatuhan (10%)</span>
+              <p class="text-slate-300">Skor = 100 - (Alpa / Izin Ditolak * 15)</p>
+            </div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[10px] text-cyan-300">
+            Rumus: <span class="text-white">KPI = 30% Kehadiran + 30% Laporan Kerja + 30% Target Divisi + 10% Disiplin</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="p-4 rounded-2xl bg-[#0e1436] border border-amber-500/40 shadow-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black text-xl border border-amber-500/40">1</div>
+            <div>
+              <span class="text-[10px] font-bold text-amber-400">KARYAWAN TERBAIK BULAN INI</span>
+              <h4 class="font-bold text-white text-sm" id="kpiTop1Name">— Belum Ada Data —</h4>
+              <p class="text-xs text-slate-400">Tersedia setelah Google Spreadsheet terhubung</p>
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl bg-[#0e1436] border border-slate-600 shadow-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-slate-500/20 text-slate-300 flex items-center justify-center font-black text-xl border border-slate-500/40">2</div>
+            <div>
+              <span class="text-[10px] font-bold text-slate-400">PERINGKAT KEDUA KPI</span>
+              <h4 class="font-bold text-white text-sm" id="kpiTop2Name">— Belum Ada Data —</h4>
+              <p class="text-xs text-slate-400">Tersedia setelah Google Spreadsheet terhubung</p>
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl bg-[#0e1436] border border-orange-500/40 shadow-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-orange-500/20 text-orange-400 flex items-center justify-center font-black text-xl border border-orange-500/40">3</div>
+            <div>
+              <span class="text-[10px] font-bold text-orange-400">PERINGKAT KETIGA KPI</span>
+              <h4 class="font-bold text-white text-sm" id="kpiTop3Name">— Belum Ada Data —</h4>
+              <p class="text-xs text-slate-400">Tersedia setelah Google Spreadsheet terhubung</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-[#0e1436]/90 border border-slate-800 shadow-xl overflow-x-auto">
+          <h3 class="text-xs font-bold text-white tracking-wider mb-4">REKAPITULASI NILAI KPI KARYAWAN BULANAN</h3>
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="text-slate-400 border-b border-slate-800 pb-2 text-[10px]">
+                <th class="py-2">KARYAWAN</th>
+                <th class="py-2">DIVISI</th>
+                <th class="py-2">KEHADIRAN (30%)</th>
+                <th class="py-2">LAPORAN KERJA (30%)</th>
+                <th class="py-2">TARGET DIVISI (30%)</th>
+                <th class="py-2">DISIPLIN (10%)</th>
+                <th class="py-2">SKOR TOTAL</th>
+                <th class="py-2">PREDIKAT</th>
+                <th class="py-2 text-right">EVALUASI</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60" id="kpiTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ======================================================================= -->
+      <!-- TAMPILAN F: LAPORAN KERJA HARIAN (KANBAN PROSES-HOLD-SELESAI) -->
+      <!-- ======================================================================= -->
+      <div id="view-reports" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-black uppercase tracking-wide">Laporan Kerja Harian (Papan Kanban)</h2>
+            <p class="text-xs text-slate-400">Alur kerja: Proses → Hold → Selesai. <span class="text-amber-400 font-semibold">Hold & Selesai wajib lampirkan bukti/link.</span></p>
+          </div>
+          <button onclick="openNewTaskModal()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/30 shrink-0">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Buat Laporan Baru</span>
+          </button>
+        </div>
+
+        <!-- Modal Bukti Upload / Link (untuk HOLD dan SELESAI) -->
+        <div id="buktiModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div class="w-full max-w-md bg-[#0e1436] border border-cyan-500/40 rounded-2xl p-6 shadow-2xl shadow-cyan-500/20">
+            <div class="flex items-center gap-3 mb-4">
+              <div id="buktiModalIcon" class="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                <i data-lucide="paperclip" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 id="buktiModalTitle" class="font-bold text-white text-sm">Lampirkan Bukti Tugas</h3>
+                <p id="buktiModalSubtitle" class="text-[11px] text-slate-400">Wajib diisi untuk status Hold/Selesai</p>
+              </div>
+            </div>
+            <div class="space-y-3 text-xs">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Judul Tugas</label>
+                <input type="text" id="buktiTaskTitle" readonly class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-300 cursor-not-allowed">
+              </div>
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Keterangan / Catatan <span class="text-slate-500">(opsional)</span></label>
+                <textarea id="buktiCatatan" rows="2" placeholder="Contoh: Selesai dikerjakan, laporan terlampir..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400 resize-none"></textarea>
+              </div>
+              <div>
+                <label class="block text-cyan-300 font-bold mb-1">🔗 Tautan Bukti / Link Dokumen <span class="text-rose-400">(isi tautan ATAU unggah foto)</span></label>
+                <input type="url" id="buktiBuktiLink" placeholder="https://drive.google.com/... atau tautan lainnya" class="w-full bg-slate-950 border border-cyan-500/40 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400 placeholder-slate-600">
+                <p class="text-[10px] text-slate-500 mt-1">Bisa: Google Drive, Google Photos, WhatsApp, tautan gambar, dsb.</p>
+              </div>
+              <div>
+                <label class="block text-cyan-300 font-bold mb-1">📷 Atau unggah foto bukti</label>
+                <input type="file" id="buktiFile" accept="image/*" class="w-full text-[11px] text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-800 file:text-cyan-300">
+              </div>
+              <p id="buktiValidasiMsg" class="text-rose-400 text-[11px] hidden">⚠ Wajib isi tautan bukti atau unggah foto untuk status ini.</p>
+            </div>
+            <div class="flex gap-3 mt-5">
+              <button onclick="closeBuktiModal()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition">Batal</button>
+              <button onclick="confirmMoveWithBukti()" id="buktiConfirmBtn" class="flex-1 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold shadow-lg transition active:scale-95">Simpan & Pindahkan</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Kolom 1: PROSES (Sedang Dikerjakan) -->
+          <div class="p-4 rounded-2xl bg-[#0e1436]/90 border border-cyan-500/30 flex flex-col min-h-64">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                <span class="text-xs font-bold text-cyan-300">SEDANG DIKERJAKAN</span>
+              </div>
+              <span class="px-2 py-0.5 rounded-full bg-cyan-500/20 text-[10px] text-cyan-300 font-bold border border-cyan-500/30" id="badge-proses-count">0</span>
+            </div>
+            <div class="space-y-3 flex-1" id="kanban-col-proses"></div>
+          </div>
+
+          <!-- Kolom 2: HOLD (Ditangguhkan - wajib bukti) -->
+          <div class="p-4 rounded-2xl bg-[#0e1436]/90 border border-amber-500/30 flex flex-col min-h-64">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                <span class="text-xs font-bold text-amber-300">DITANGGUHKAN (HOLD)</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="paperclip" class="w-3 h-3 text-amber-400"></i>
+                <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-[10px] text-amber-300 font-bold border border-amber-500/30" id="badge-hold-count">0</span>
+              </div>
+            </div>
+            <p class="text-[10px] text-amber-400/70 mb-2 italic">⚠ Wajib lampirkan bukti/link saat memindahkan ke kolom ini.</p>
+            <div class="space-y-3 flex-1" id="kanban-col-hold"></div>
+          </div>
+
+          <!-- Kolom 3: SELESAI (Tuntas - wajib bukti) -->
+          <div class="p-4 rounded-2xl bg-[#0e1436]/90 border border-emerald-500/30 flex flex-col min-h-64">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                <span class="text-xs font-bold text-emerald-300">TUNTAS SELESAI</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="paperclip" class="w-3 h-3 text-emerald-400"></i>
+                <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-[10px] text-emerald-300 font-bold border border-emerald-500/30" id="badge-selesai-count">0</span>
+              </div>
+            </div>
+            <p class="text-[10px] text-emerald-400/70 mb-2 italic">✓ Wajib lampirkan bukti/link saat menandai selesai.</p>
+            <div class="space-y-3 flex-1" id="kanban-col-selesai"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================================================================= -->
+      <!-- TAMPILAN G: PERIZINAN & CUTI -->
+      <!-- ======================================================================= -->
+      <div id="view-leaves" class="hidden space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-black uppercase tracking-wide">Pengajuan Izin, Cuti, & Sakit</h2>
+            <p class="text-xs text-slate-400">Pengajuan izin daring dengan lampiran dokumen dan persetujuan HRD</p>
+          </div>
+          <button onclick="openNewLeaveModal()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/30">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Ajukan Izin Baru</span>
+          </button>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-[#0e1436]/90 border border-slate-800 shadow-xl overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="text-slate-400 border-b border-slate-800 pb-2 text-[10px]">
+                <th class="py-2">KARYAWAN</th>
+                <th class="py-2">TIPE PERIZINAN</th>
+                <th class="py-2">PERIODE TANGGAL</th>
+                <th class="py-2">ALASAN KEPERLUAN</th>
+                <th class="py-2">STATUS PERSETUJUAN</th>
+                <th class="py-2 text-right" id="leavesActionTh">TINDAKAN HRD</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60" id="leavesTableBody">
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3 font-bold text-white">Andi Pratama <span class="text-[10px] text-slate-400 font-normal block">Divisi: DOS</span></td>
+                <td class="py-3"><span class="px-2 py-0.5 rounded bg-blue-500/20 text-cyan-300 font-bold text-[10px]">Cuti Tahunan</span></td>
+                <td class="py-3 text-slate-300">14 Okt - 16 Okt 2026</td>
+                <td class="py-3 text-slate-300">Urusan keluarga di luar kota</td>
+                <td class="py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">Menunggu</span></td>
+                <td class="py-3 text-right">
+                  <button onclick="approveLeave(this)" class="px-2.5 py-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded text-[10px] font-bold mr-1">Setujui</button>
+                  <button onclick="rejectLeave(this)" class="px-2.5 py-1 bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 rounded text-[10px] font-bold">Tolak</button>
+                </td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3 font-bold text-white">Dewi Lestari <span class="text-[10px] text-slate-400 font-normal block">Divisi: QC</span></td>
+                <td class="py-3"><span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold text-[10px]">Sakit (Surat Dokter)</span></td>
+                <td class="py-3 text-slate-300">12 Okt 2026</td>
+                <td class="py-3 text-slate-300">Demam dan influenza</td>
+                <td class="py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Disetujui</span></td>
+                <td class="py-3 text-right text-slate-400 text-[10px]">Oleh: Admin HRD</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ======================================================================= -->
+      <!-- TAMPILAN H: DATA KARYAWAN & RBAC -->
+      <!-- ======================================================================= -->
+      <div id="view-employee" class="hidden space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-black uppercase tracking-wide">Manajemen Karyawan & Hak Akses (RBAC)</h2>
+            <p class="text-xs text-slate-400">Daftar Karyawan, Peran Hak Akses, Divisi, dan Status Aktivasi Akun</p>
+          </div>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-[#0e1436]/90 border border-slate-800 shadow-xl overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="text-slate-400 border-b border-slate-800 pb-2 text-[10px]">
+                <th class="py-2">ID PENGGUNA</th>
+                <th class="py-2">NAMA KARYAWAN</th>
+                <th class="py-2">SUREL (EMAIL)</th>
+                <th class="py-2">PERAN (ROLE)</th>
+                <th class="py-2">DIVISI</th>
+                <th class="py-2">STATUS AKUN</th>
+                <th class="py-2 text-right">TINDAKAN</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60" id="usersTableBody">
+              <tr><td colspan="7" class="py-6 text-center text-slate-500">Memuat data karyawan...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ======================================================================= -->
+      <!-- TAMPILAN I: PENGATURAN SISTEM -->
+      <!-- ======================================================================= -->
+      <div id="view-settings" class="hidden max-w-xl mx-auto space-y-6">
+        <div class="p-6 rounded-2xl bg-[#0e1436] border border-slate-800 shadow-2xl">
+          <h3 class="text-base font-bold text-white mb-1">Pengaturan Sistem & Batas Jam Kerja</h3>
+          <p class="text-xs text-slate-400 mb-6">Konfigurasi disinkronkan langsung ke basis data Google Spreadsheet</p>
+
+          <form id="settingsForm" onsubmit="saveSettings(event)" class="space-y-4 text-xs">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Nama Perusahaan / Organisasi</label>
+              <input type="text" id="setCompany" value="" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-400">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Batas Jam Masuk (Terlambat)</label>
+                <input type="time" id="setWorkStart" value="08:30" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-400">
+              </div>
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Radius Bawaan (Meter)</label>
+                <input type="number" id="setMaxRadius" value="100" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-cyan-400">
+              </div>
+            </div>
+            <button type="submit" class="w-full mt-2 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl font-bold text-white shadow-lg shadow-indigo-600/30">
+              Simpan Konfigurasi ke Google Spreadsheet
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 4. LOGIKA JAVASCRIPT & AUTENTIKASI + SLIDE BAR MOBILE -->
+  <!-- ========================================================================= -->
+  <!-- MODAL FORMULIR UMUM -->
+  <div id="formModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <form id="formModalForm" class="w-full max-w-md max-h-[90vh] overflow-y-auto bg-[#0e1436] border border-cyan-500/40 rounded-2xl p-6 shadow-2xl space-y-3 text-xs">
+      <h3 id="formModalTitle" class="font-bold text-white text-sm"></h3>
+      <div id="formModalFields" class="space-y-3"></div>
+      <p id="formModalError" class="text-rose-400 text-[11px] hidden"></p>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeFormModal()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold">Batal</button>
+        <button type="submit" id="formModalSubmit" class="flex-1 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl font-bold">Simpan</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Generator Vektor SVG Maskot Ayam Berkacamata & Kaca Pembesar
+    function getChickenSvg(size = 64) {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="95" cy="115" rx="55" ry="60" fill="#FFFDF5" stroke="#1E293B" stroke-width="4"/>
+          <path d="M70 65 C60 45 75 35 85 45 C95 30 110 32 115 48 C125 40 135 50 128 65 Z" fill="#EF4444" stroke="#1E293B" stroke-width="4"/>
+          <path d="M92 125 C88 138 98 145 102 135 C106 145 116 138 112 125 Z" fill="#DC2626" stroke="#1E293B" stroke-width="3"/>
+          <polygon points="90,105 114,105 102,120" fill="#F59E0B" stroke="#1E293B" stroke-width="3"/>
+          <rect x="68" y="90" width="26" height="18" rx="4" fill="#E0F2FE" fill-opacity="0.6" stroke="#0284C7" stroke-width="3.5"/>
+          <rect x="108" y="90" width="26" height="18" rx="4" fill="#E0F2FE" fill-opacity="0.6" stroke="#0284C7" stroke-width="3.5"/>
+          <line x1="94" y1="99" x2="108" y2="99" stroke="#0284C7" stroke-width="3.5"/>
+          <path d="M76 98 Q81 94 86 98" stroke="#0F172A" stroke-width="3" stroke-linecap="round"/>
+          <path d="M116 98 Q121 94 126 98" stroke="#0F172A" stroke-width="3" stroke-linecap="round"/>
+          <path d="M45 110 C50 95 65 92 72 98" stroke="#1E293B" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <rect x="156" y="100" width="8" height="35" rx="3" fill="#475569" stroke="#1E293B" stroke-width="3" transform="rotate(15 156 100)"/>
+          <circle cx="150" cy="80" r="24" fill="#BAE6FD" fill-opacity="0.45" stroke="#334155" stroke-width="5"/>
+          <ellipse cx="145" cy="75" rx="14" ry="10" fill="#FFFFFF" fill-opacity="0.6"/>
+          <path d="M80 175 L80 190 M70 190 L90 190" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"/>
+          <path d="M115 175 L115 190 M105 190 L125 190" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+      `;
+    }
+
+    lucide.createIcons();
+
+    // Format Tanggal Bahasa Indonesia
+    const hari = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const bulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const now = new Date();
+    document.getElementById('currentDateDisplay').innerText = `${hari[now.getDay()]}, ${now.getDate()} ${bulan[now.getMonth()]} ${now.getFullYear()}`;
+
+    // =========================================================================
+    // 1. MANAJEMEN AUTENTIKASI PENGGUNA (LOGIN, REGISTRASI, SESI)
+    // =========================================================================
+    // KONFIGURASI: tempel URL Web App Google Apps Script (berakhiran /exec)
+    const API_URL = "";
+
+    async function api(action, payload = {}) {
+      if (!API_URL) throw new Error("URL Apps Script belum diisi (konstanta API_URL di index.html).");
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action, token: currentUser ? currentUser.token : undefined, ...payload })
+      });
+      const data = await res.json();
+      if (data.code === 'AUTH' && action !== 'login') { sessionExpired(data.message); throw new Error(data.message); }
+      if (data.status !== 'success') throw new Error(data.message || 'Terjadi kesalahan pada server');
+      return data;
+    }
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+
+    let currentUser = null;
+
+    function checkAuthSession() {
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem('daily_report_current_user')); } catch (e) {}
+      if (saved && saved.id && saved.token) { currentUser = saved; showMainApp(); } else { showAuthScreen(); }
+    }
+
+    function switchAuthTab(tab) {
+      const formLogin = document.getElementById('formLogin');
+      const formReg = document.getElementById('formRegister');
+      const tabLogin = document.getElementById('tabAuthLogin');
+      const tabReg = document.getElementById('tabAuthRegister');
+      const on = "py-2.5 rounded-xl transition-all bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md";
+      const off = "py-2.5 rounded-xl transition-all text-slate-400 hover:text-white";
+      formLogin.classList.toggle('hidden', tab !== 'login');
+      formReg.classList.toggle('hidden', tab === 'login');
+      tabLogin.className = tab === 'login' ? on : off;
+      tabReg.className = tab === 'login' ? off : on;
+      lucide.createIcons();
+    }
+
+    async function handleUserLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      showLoading("Memverifikasi akun...");
+      try {
+        const d = await api('login', { email, password });
+        currentUser = d.user;
+        localStorage.setItem('daily_report_current_user', JSON.stringify(currentUser));
+        document.getElementById('loginPassword').value = '';
+        showMainApp();
+      } catch (err) {
+        alert(err.message);
+      } finally { hideLoading(); }
+    }
+
+    async function handleUserRegister(e) {
+      e.preventDefault();
+      const password = document.getElementById('regPassword').value;
+      if (password.length < 6) { alert("Kata sandi minimal 6 karakter."); return; }
+      const email = document.getElementById('regEmail').value.trim();
+      showLoading("Mendaftarkan akun...");
+      try {
+        const d = await api('register', {
+          nama: document.getElementById('regNama').value.trim(), email, password,
+          divisi: document.getElementById('regDivisi').value, role: 'KARYAWAN'
+        });
+        alert(d.message);
+        document.getElementById('formRegister').reset();
+        switchAuthTab('login');
+        document.getElementById('loginEmail').value = email;
+      } catch (err) { alert(err.message); } finally { hideLoading(); }
+    }
+
+    function doLogout() {
+      localStorage.removeItem('daily_report_current_user');
+      currentUser = null;
+      if (gpsWatchId !== null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+      if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+      showAuthScreen();
+    }
+    function handleUserLogout() { if (confirm("Apakah Anda yakin ingin keluar dari sistem?")) doLogout(); }
+    let expiredShown = false;
+    function sessionExpired(msg) {
+      if (expiredShown || !currentUser) return;
+      expiredShown = true; doLogout(); alert(msg || "Sesi berakhir. Silakan login kembali.");
+      setTimeout(() => { expiredShown = false; }, 1000);
+    }
+
+    function showMainApp() {
+      document.getElementById('authScreen').classList.add('hidden');
+      document.getElementById('mainAppLayout').classList.remove('hidden');
+      if (currentUser) {
+        document.getElementById('sidebarUserName').innerText = currentUser.nama;
+        document.getElementById('sidebarUserDept').innerText = `${currentUser.divisi} • ${currentUser.role}`;
+        document.getElementById('mobileUserRoleBadge').innerText = currentUser.divisi;
+        document.getElementById('userAvatarText').innerText = currentUser.nama.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      }
+      applyRbacRules();
+      switchTab('overview');
+      lucide.createIcons();
+    }
+
+    // Menu samping ditentukan oleh DIVISI (Super Admin = semua menu)
+    const ALL_TABS = ['overview', 'attendance', 'dept-report', 'outlets', 'kpi', 'reports', 'leaves', 'employee', 'settings'];
+    const MENU_BY_DIVISI = {
+      'HRD': ['overview', 'attendance', 'dept-report', 'kpi', 'reports', 'leaves', 'employee'],
+      'BM':  ['overview', 'attendance', 'dept-report', 'kpi', 'reports', 'leaves']
+    };
+    const MENU_DEFAULT = ['overview', 'attendance', 'reports', 'leaves'];
+    function getAllowedTabs() {
+      if (!currentUser) return ['overview'];
+      if (currentUser.role === 'Super Admin') return ALL_TABS;
+      return MENU_BY_DIVISI[String(currentUser.divisi || '').toUpperCase()] || MENU_DEFAULT;
+    }
+    const isMonitor = () => getAllowedTabs().includes('dept-report');
+    const isApprover = () => !!currentUser && (currentUser.role === 'Super Admin' || String(currentUser.divisi).toUpperCase() === 'HRD');
+
+    // =========================================================================
+    // 1.B LOGIKA KONTROL AKSES BERBASIS PERAN (ROLE-BASED ACCESS CONTROL / RBAC)
+    // =========================================================================
+    function applyRbacRules() {
+      if (!currentUser) return;
+      const role = currentUser.role || 'KARYAWAN';
+
+      const tabsForRole = getAllowedTabs();
+      const allTabsList = ALL_TABS;
+
+      allTabsList.forEach(t => {
+        const tabEl = document.getElementById('tab-' + t);
+        if (tabEl) {
+          if (tabsForRole.includes(t)) {
+            tabEl.classList.remove('hidden');
+          } else {
+            tabEl.classList.add('hidden');
+          }
+        }
+      });
+
+      // 2. Tampilan Ringkasan Dasbor (Overview): Admin Perusahaan vs Karyawan Mandiri
+      const adminSec = document.getElementById('adminOverviewSection');
+      const empSec = document.getElementById('employeeOverviewSection');
+
+      if (!isMonitor()) {
+        if (adminSec) adminSec.classList.add('hidden');
+        if (empSec) empSec.classList.remove('hidden');
+
+        const empNameEl = document.getElementById('empCardWelcome');
+        const empDeptEl = document.getElementById('empCardDept');
+        if (empNameEl) empNameEl.innerText = `Selamat Bertugas, ${currentUser.nama}`;
+        if (empDeptEl) empDeptEl.innerText = `Divisi: ${currentUser.divisi}`;
+      } else {
+        if (adminSec) adminSec.classList.remove('hidden');
+        if (empSec) empSec.classList.add('hidden');
+      }
+
+      // 3. Hak Akses Kelola Gerai & Pengaturan (Hanya Super Admin)
+      const btnToggleOutlet = document.getElementById('btnToggleOutletText');
+      if (btnToggleOutlet) {
+        const parentBtn = btnToggleOutlet.closest('button');
+        if (parentBtn) {
+          if (role === 'Super Admin') {
+            parentBtn.classList.remove('hidden');
+          } else {
+            parentBtn.classList.add('hidden');
+          }
+        }
+      }
+
+      // 4. Perbarui Indikator RBAC di Banner Atas
+      const rbacName = document.getElementById('rbacUserNameText');
+      const rbacPill = document.getElementById('rbacRoleBadgePill');
+      const rbacDesc = document.getElementById('rbacRoleDescText');
+      const rbacCount = document.getElementById('rbacAllowedTabsCountText');
+      const rbacIconBox = document.getElementById('rbacRoleIconBox');
+
+      if (rbacName) rbacName.innerText = currentUser.nama;
+      if (rbacCount) rbacCount.innerText = `${tabsForRole.length} Menu Aktif`;
+
+      if (role === 'Super Admin') {
+        if (rbacPill) {
+          rbacPill.className = "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40";
+          rbacPill.innerText = "SUPER ADMIN (AKSES PENUH)";
+        }
+        if (rbacDesc) rbacDesc.innerText = "Akses Penuh Seluruh Sistem: Konfigurasi Gerai Cabang, Radius 100m, Manajemen Pengguna & Rekap Global";
+        if (rbacIconBox) rbacIconBox.className = "p-2 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40 shrink-0";
+      } else if (role === 'HRD') {
+        if (rbacPill) {
+          rbacPill.className = "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40";
+          rbacPill.innerText = "HRD (APPROVAL & REKAP SDM)";
+        }
+        if (rbacDesc) rbacDesc.innerText = "Akses Manajemen SDM: Persetujuan Izin/Cuti/Sakit Karyawan, Rekapitulasi Presensi Divisi, dan Evaluasi KPI";
+        if (rbacIconBox) rbacIconBox.className = "p-2 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 shrink-0";
+      } else if (role === 'BM') {
+        if (rbacPill) {
+          rbacPill.className = "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40";
+          rbacPill.innerText = "BRANCH MANAGER (MONITORING)";
+        }
+        if (rbacDesc) rbacDesc.innerText = "Akses Manajerial Cabang: Monitoring Laporan Harian Anggota, Presensi Divisi, dan Analisis Performa KPI";
+        if (rbacIconBox) rbacIconBox.className = "p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0";
+      } else {
+        if (rbacPill) {
+          rbacPill.className = "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40";
+          rbacPill.innerText = `KARYAWAN (${currentUser.divisi})`;
+        }
+        if (rbacDesc) rbacDesc.innerText = "Akses Operasional Karyawan: Presensi Biometrik GPS, Papan Kanban Laporan Kerja, dan Formulir Pengajuan Izin";
+        if (rbacIconBox) rbacIconBox.className = "p-2 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shrink-0";
+      }
+
+      // 5. Perbarui Tabel Izin & Cuti sesuai Hak Approval
+      renderLeavesTable();
+    }
+
+    function showAuthScreen() {
+      document.getElementById('authScreen').classList.remove('hidden');
+      document.getElementById('mainAppLayout').classList.add('hidden');
+      lucide.createIcons();
+    }
+
+    // =========================================================================
+    // 2. SLIDE BAR (MENU DRAWER MOBILE) BISA BUKA, TUTUP, TAMPIL & SEMBUNYI
+    // =========================================================================
+    let isMobileSidebarOpen = false;
+
+    function toggleMobileSidebar() {
+      if (isMobileSidebarOpen) {
+        closeMobileSidebar();
+      } else {
+        openMobileSidebar();
+      }
+    }
+
+    function openMobileSidebar() {
+      const sidebar = document.getElementById('mainSidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+
+      sidebar.classList.remove('-translate-x-full');
+      sidebar.classList.add('translate-x-0');
+      backdrop.classList.remove('hidden');
+      isMobileSidebarOpen = true;
+    }
+
+    function closeMobileSidebar() {
+      const sidebar = document.getElementById('mainSidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+
+      sidebar.classList.remove('translate-x-0');
+      sidebar.classList.add('-translate-x-full');
+      backdrop.classList.add('hidden');
+      isMobileSidebarOpen = false;
+    }
+
+    // =========================================================================
+    // 3. KUTIPAN MOTIVASI HARIAN
+    // =========================================================================
+    const dailyQuotes = [
+      { text: "Disiplin adalah jembatan penghubung antara impian dan pencapaian target kerja.", author: "Jim Rohn", cat: "Kedisiplinan Kerja" },
+      { text: "Kualitas kerja hari ini adalah reputasi masa depan yang sedang Anda bangun.", author: "Pepatah Profesional", cat: "Integritas & Kualitas" },
+      { text: "Kerja keras mengalahkan bakat ketika bakat tidak bekerja keras.", author: "Tim Notke", cat: "Dedikasi & Loyalitas" },
+      { text: "Konsistensi kecil yang dilakukan setiap hari menghasilkan lompatan sukses yang luar biasa.", author: "Robin Sharma", cat: "Konsistensi Hasil" },
+      { text: "Keberhasilan sebuah tim tercapai saat setiap anggota saling mendukung dan bertanggung jawab penuh.", author: "Vince Lombardi", cat: "Kerja Sama Tim" },
+      { text: "Fokuslah menjadi produktif dan solutif, bukan hanya sekadar terlihat sibuk.", author: "Tim Ferriss", cat: "Efisiensi Kerja" },
+      { text: "Bekerjalah dengan tulus dan bangga, hasil yang memuaskan tidak pernah mengkhianati ikhtiar.", author: "Petuah Kebijakan", cat: "Profesionalisme" }
+    ];
+    let quoteIndex = Math.floor(Math.random() * dailyQuotes.length);
+
+    function renderQuote() {
+      const q = dailyQuotes[quoteIndex];
+      document.getElementById('dailyQuoteText').innerText = `"${q.text}"`;
+      document.getElementById('dailyQuoteAuthor').innerText = `— ${q.author}`;
+      document.getElementById('quoteCategory').innerText = q.cat;
+    }
+
+    function nextQuote() {
+      quoteIndex = (quoteIndex + 1) % dailyQuotes.length;
+      renderQuote();
+    }
+    renderQuote();
+
+    // =========================================================================
+    // 4. KELOLA GERAI & TITIK PRESENSI
+    // =========================================================================
+    let outlets = [];
+    let selectedOutletId = null;
+    const getSelectedOutlet = () => outlets.find(o => o.id === selectedOutletId) || outlets[0] || null;
+
+    async function loadOutlets() {
+      try {
+        const d = await api('get_outlets');
+        outlets = d.data.filter(o => o.Status_Aktif === 'Active').map(o => ({
+          id: o.ID, name: o.Nama_Outlet, address: o.Alamat, lat: Number(o.Latitude), lng: Number(o.Longitude), radius: Number(o.Max_Radius_Meters) || 100
+        }));
+        if (!outlets.find(o => o.id === selectedOutletId)) selectedOutletId = outlets[0] ? outlets[0].id : null;
+      } catch (err) { console.error(err); }
+      renderOutletsTable();
+      recomputeDistance();
+    }
+
+    function renderOutletsTable() {
+      const tbody = document.getElementById('outletsTableBody');
+      const select = document.getElementById('selectAttendanceOutlet');
+      tbody.innerHTML = outlets.length ? outlets.map(o => `
+        <tr class="hover:bg-slate-800/30 transition">
+          <td class="py-3 font-mono text-cyan-400 font-bold">${esc(o.id)}</td>
+          <td class="py-3 font-bold text-white">${esc(o.name)}</td>
+          <td class="py-3 text-slate-300">${esc(o.address)}</td>
+          <td class="py-3 font-mono text-slate-400 text-[11px]">${o.lat.toFixed(5)}, ${o.lng.toFixed(5)}</td>
+          <td class="py-3"><span class="px-2 py-0.5 rounded bg-blue-500/20 text-cyan-300 font-bold">${o.radius} meter</span></td>
+          <td class="py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">Aktif</span></td>
+          <td class="py-3 text-right"><button onclick="deleteOutlet('${esc(o.id)}')" class="px-2 py-1 bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 rounded text-[10px] font-bold">Hapus</button></td>
+        </tr>`).join('') : `<tr><td colspan="7" class="py-6 text-center text-slate-500">Belum ada gerai. Tambahkan titik gerai pertama.</td></tr>`;
+      select.innerHTML = outlets.length ? outlets.map(o => `<option value="${esc(o.id)}" ${o.id === selectedOutletId ? 'selected' : ''}>${esc(o.name)} - Maksimal ${o.radius}m</option>`).join('') : '<option value="">Belum ada gerai terdaftar</option>';
+    }
+
+    function toggleOutletForm() {
+      const form = document.getElementById('outletFormCard');
+      const btn = document.getElementById('btnToggleOutletText');
+      if (form.classList.contains('hidden')) {
+        form.classList.remove('hidden');
+        btn.innerText = "Tutup Formulir Gerai";
+      } else {
+        form.classList.add('hidden');
+        btn.innerText = "Tambah Titik Gerai Baru";
+      }
+    }
+
+    function getCurrentGpsForOutlet() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            document.getElementById('outLat').value = pos.coords.latitude.toFixed(6);
+            document.getElementById('outLng').value = pos.coords.longitude.toFixed(6);
+            alert("Berhasil mendeteksi koordinat GPS perangkat Anda saat ini!");
+          },
+          (err) => alert("Gagal mengambil GPS: " + err.message)
+        );
+      } else {
+        alert("Peramban Anda tidak mendukung sensor Geolocation.");
+      }
+    }
+
+    async function handleAddNewOutlet(e) {
+      e.preventDefault();
+      const lat = parseFloat(document.getElementById('outLat').value);
+      const lng = parseFloat(document.getElementById('outLng').value);
+      if (isNaN(lat) || isNaN(lng)) { alert("Koordinat belum valid."); return; }
+      showLoading("Menyimpan gerai...");
+      try {
+        const d = await api('add_outlet', {
+          namaOutlet: document.getElementById('outName').value.trim(),
+          alamat: document.getElementById('outAddress').value.trim() || '-',
+          latitude: lat, longitude: lng, maxRadius: parseInt(document.getElementById('outRadius').value) || 100
+        });
+        e.target.reset(); toggleOutletForm(); await loadOutlets(); alert(d.message);
+      } catch (err) { alert(err.message); } finally { hideLoading(); }
+    }
+
+    async function deleteOutlet(id) {
+      if (!confirm("Apakah Anda yakin ingin menghapus titik gerai ini?")) return;
+      try { await api('delete_outlet', { outletId: id }); await loadOutlets(); } catch (err) { alert(err.message); }
+    }
+
+    function handleSelectOutletChange(outId) {
+      selectedOutletId = outId;
+      recomputeDistance();
+    }
+
+    // =========================================================================
+    // 5. LAPORAN PRESENSI PER DIVISI
+    // =========================================================================
+    let deptAttendanceData = [];
+    async function loadDeptReport() {
+      const dateEl = document.getElementById('deptDateFilter');
+      if (!dateEl.value) dateEl.value = todayStr();
+      try {
+        const d = await api('get_dept_report', { divisi: 'Semua', tanggal: dateEl.value });
+        deptAttendanceData = d.data.map(r => {
+          const late = r.Status_Kehadiran === 'Late';
+          return { id: r.User_ID, name: r.Nama_Karyawan, dept: r.Divisi, outlet: r.Lokasi_Gerai, checkIn: r.Jam_Masuk, distance: r.Distance_Meters + 'm',
+            status: late ? 'Terlambat' : 'Hadir', foto: r.Foto_Selfie_URL,
+            statusPill: late ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' };
+        });
+      } catch (err) { deptAttendanceData = []; console.error(err); }
+      filterDeptReport(document.getElementById('selectDeptFilter').value);
+    }
+
+    function filterDeptReport(selectedDept) {
+      const selectedStatus = document.getElementById('selectStatusFilter').value;
+      let filtered = deptAttendanceData;
+
+      if (selectedDept !== "Semua") {
+        filtered = filtered.filter(item => item.dept === selectedDept);
+      }
+      if (selectedStatus !== "Semua") {
+        filtered = filtered.filter(item => item.status === selectedStatus);
+      }
+
+      const total = filtered.length;
+      const hadir = filtered.filter(i => i.status === "Hadir").length;
+      const telat = filtered.filter(i => i.status === "Terlambat").length;
+      const alpaCuti = filtered.filter(i => i.status === "Alpa" || i.status === "Cuti").length;
+
+      document.getElementById('deptCardTotal').innerText = `${total} Orang`;
+      document.getElementById('deptCardName').innerText = selectedDept === "Semua" ? "Seluruh Divisi" : `Divisi ${selectedDept}`;
+      document.getElementById('deptCardPresent').innerText = `${hadir} Orang`;
+      document.getElementById('deptCardLate').innerText = `${telat} Orang`;
+      document.getElementById('deptCardAbsent').innerText = `${alpaCuti} Orang`;
+      document.getElementById('deptReportRowCount').innerText = `Menampilkan ${total} data`;
+
+      const tbody = document.getElementById('deptReportTableBody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-500">Tidak ada data presensi yang sesuai dengan filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(row => `
+        <tr class="hover:bg-slate-800/30 transition">
+          <td class="py-3 font-semibold text-slate-300">${esc(row.id)}</td>
+          <td class="py-3 font-bold text-white">${esc(row.name)}</td>
+          <td class="py-3"><span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold text-[10px]">${row.dept}</span></td>
+          <td class="py-3 text-cyan-300">${row.outlet}</td>
+          <td class="py-3 text-slate-300 font-medium">${row.checkIn}</td>
+          <td class="py-3 text-slate-400">${row.distance}</td>
+          <td class="py-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold border ${row.statusPill}">${row.status}</span></td>
+          <td class="py-3 text-right">
+            ${row.status === "Hadir" || row.status === "Terlambat" ? `
+              <button onclick="viewSelfieProof('${esc(row.foto)}')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded text-[10px] font-bold border border-slate-700">Lihat Foto</button>
+            ` : `<span class="text-slate-500 text-[10px]">-</span>`}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function viewSelfieProof(url) { if (url && url !== '-') window.open(url, '_blank', 'noopener'); }
+
+    function exportDeptReportToCSV() {
+      const dept = document.getElementById('selectDeptFilter').value;
+      const csvRows = [
+        ["ID KARYAWAN", "NAMA KARYAWAN", "DIVISI", "LOKASI GERAI", "JAM MASUK", "JARAK", "STATUS"],
+        ...deptAttendanceData.map(d => [d.id, d.name, d.dept, d.outlet, d.checkIn, d.distance, d.status])
+      ];
+      const csvContent = "\uFEFF" + csvRows.map(e => e.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.setAttribute("href", url);
+      a.setAttribute("download", `REKAP_PRESENSI_DIVISI_${dept}_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // =========================================================================
+    // 6. ANALISIS KPI KARYAWAN
+    // =========================================================================
+    let kpiData = [];
+    async function loadKpi() {
+      const el = document.getElementById('kpiPeriod');
+      if (!el.value) el.value = todayStr().slice(0, 7);
+      try {
+        const d = await api('get_kpi_summary', { periode: el.value });
+        kpiData = d.data.map(r => ({ id: r.userId, name: r.nama, dept: r.divisi, hadir: r.hadir, late: r.late, hariKerja: r.hariKerja, taskTarget: r.taskTotal, taskDone: r.taskSelesai, targetDept: r.targetDivisi, alpha: r.alpha }));
+      } catch (err) { kpiData = []; console.error(err); }
+      renderKpiTable();
+    }
+
+    function calculateKpiScore(item) {
+      const totalHariKerja = Math.max(1, item.hariKerja || 1);
+      const skorHadir = Math.max(0, (item.hadir / totalHariKerja * 100) - (item.late * 2));
+      const skorReport = item.taskTarget ? Math.min(100, (item.taskDone / item.taskTarget * 100)) : 0;
+      const skorTarget = item.targetDept;
+      const skorDisiplin = Math.max(0, 100 - (item.alpha * 15));
+
+      const totalScore = (skorHadir * 0.30) + (skorReport * 0.30) + (skorTarget * 0.30) + (skorDisiplin * 0.10);
+      const rounded = totalScore.toFixed(1);
+
+      let grade = "C (Cukup)";
+      let gradePill = "bg-amber-500/20 text-amber-400 border-amber-500/40";
+      let evaluasi = "Pertahankan";
+
+      if (totalScore >= 90) {
+        grade = "A (Sangat Memuaskan)";
+        gradePill = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40";
+        evaluasi = "Bonus / Penghargaan";
+      } else if (totalScore >= 80) {
+        grade = "B (Baik)";
+        gradePill = "bg-cyan-500/20 text-cyan-400 border-cyan-500/40";
+        evaluasi = "Apresiasi Kerja";
+      } else if (totalScore < 70) {
+        grade = "D (Perlu Pembinaan)";
+        gradePill = "bg-rose-500/20 text-rose-400 border-rose-500/40";
+        evaluasi = "Pembinaan Khusus";
+      }
+
+      return { rounded, skorHadir: skorHadir.toFixed(1), skorReport: skorReport.toFixed(1), grade, gradePill, evaluasi };
+    }
+
+    function renderKpiTable() {
+      const tbody = document.getElementById('kpiTableBody');
+      if (!kpiData.length) { tbody.innerHTML = '<tr><td colspan="9" class="py-6 text-center text-slate-500">Belum ada data KPI.</td></tr>'; return; }
+      const avg = document.getElementById('kpiAvgBadge');
+      if (kpiData.length) { const a = kpiData.reduce((t, k) => t + parseFloat(calculateKpiScore(k).rounded), 0) / kpiData.length; avg.innerText = `Rata-rata KPI: ${a.toFixed(1)}%`; }
+      else avg.innerText = 'Rata-rata KPI: -';
+      tbody.innerHTML = kpiData.map(k => {
+        const res = calculateKpiScore(k);
+        return `
+          <tr class="hover:bg-slate-800/30 transition">
+            <td class="py-3 font-bold text-white">${k.name} <span class="text-[10px] text-slate-400 block">${k.id}</span></td>
+            <td class="py-3 text-slate-300">${k.dept}</td>
+            <td class="py-3 text-emerald-400 font-bold">${res.skorHadir}% <span class="text-[10px] text-slate-400 block">${k.hadir}/${k.hariKerja} Hari (${k.late} Telat)</span></td>
+            <td class="py-3 text-cyan-400 font-bold">${res.skorReport}% <span class="text-[10px] text-slate-400 block">${k.taskDone}/${k.taskTarget} Tugas</span></td>
+            <td class="py-3 text-amber-400 font-bold">${k.targetDept}%</td>
+            <td class="py-3 text-slate-300 font-bold">${100 - (k.alpha * 15)}%</td>
+            <td class="py-3 font-extrabold text-white text-sm">${res.rounded}%</td>
+            <td class="py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${res.gradePill}">${res.grade}</span></td>
+            <td class="py-3 text-right"><span class="text-[10px] font-semibold text-slate-300">${res.evaluasi}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // 7. HAVERSINE & PRESENSI STRICT
+    // =========================================================================
+    function calculateHaversine(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const toRad = (x) => (x * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return Math.round(R * c);
+    }
+
+    let currentDistance = null, currentPos = null, gpsWatchId = null, autoPicked = false;
+    const MAX_GPS_ACCURACY = 50; // meter; sinyal lebih buruk dari ini ditolak
+
+    function startGps() {
+      if (gpsWatchId !== null) return;
+      if (!navigator.geolocation) { updateGeoFenceDisplay('Peramban tidak mendukung GPS.'); return; }
+      gpsWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          currentPos = pos.coords;
+          if (!autoPicked && outlets.length) {
+            const near = outlets.map(o => ({ o, d: calculateHaversine(pos.coords.latitude, pos.coords.longitude, o.lat, o.lng) })).sort((a, b) => a.d - b.d)[0];
+            selectedOutletId = near.o.id; autoPicked = true; renderOutletsTable();
+          }
+          recomputeDistance();
+        },
+        (err) => { currentPos = null; currentDistance = null; updateGeoFenceDisplay('GPS gagal: ' + err.message + '. Aktifkan izin lokasi.'); },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+      );
+    }
+
+    function recomputeDistance() {
+      const o = getSelectedOutlet();
+      currentDistance = (o && currentPos) ? calculateHaversine(currentPos.latitude, currentPos.longitude, o.lat, o.lng) : null;
+      updateGeoFenceDisplay();
+    }
+
+    function lockCheckIn(btn, btnText, text) {
+      btn.disabled = true;
+      btn.className = "w-full mt-5 py-4 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed";
+      btnText.innerText = text;
+    }
+
+    function updateGeoFenceDisplay(errMsg) {
+      const o = getSelectedOutlet();
+      const badge = document.getElementById('distanceBadge');
+      const alertBanner = document.getElementById('geoAlertBanner');
+      const alertMsg = document.getElementById('geoAlertMessage');
+      const btn = document.getElementById('btnCheckIn');
+      const btnText = document.getElementById('btnCheckInText');
+      document.getElementById('currentOutletDisplay').innerText = o ? `${o.name} (Maks ${o.radius}m)` : '-';
+      const acc = currentPos ? Math.round(currentPos.accuracy) : null;
+      document.getElementById('gpsAccText').innerText = acc !== null ? `Akurasi GPS ±${acc}m` : 'GPS: mencari...';
+      const badgeBase = "px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 border ";
+      const warn = (msg, label) => { badge.className = badgeBase + "bg-amber-500/20 text-amber-400 border-amber-500/30"; badge.innerText = label; alertMsg.innerText = msg; alertBanner.classList.remove('hidden'); };
+
+      if (!o) { warn('Belum ada gerai terdaftar. Hubungi admin.', 'Gerai belum ada'); lockCheckIn(btn, btnText, 'Presensi Terkunci'); return; }
+      if (errMsg) { warn(errMsg, 'GPS bermasalah'); lockCheckIn(btn, btnText, 'Presensi Terkunci (GPS)'); return; }
+      if (currentDistance === null) { warn('Menunggu sinyal GPS...', 'Mendeteksi Jarak...'); lockCheckIn(btn, btnText, 'Menunggu GPS...'); return; }
+      if (acc > MAX_GPS_ACCURACY) { warn(`Akurasi GPS rendah (±${acc}m). Aktifkan lokasi akurasi tinggi / pindah ke area terbuka, lalu tunggu.`, `${currentDistance} m (akurasi rendah)`); lockCheckIn(btn, btnText, 'Akurasi GPS Belum Cukup'); return; }
+
+      badge.innerText = `${currentDistance} m / Maksimal ${o.radius} m`;
+      if (currentDistance <= o.radius) {
+        badge.className = badgeBase + "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+        alertBanner.classList.add('hidden');
+        btn.disabled = false;
+        btn.className = "w-full mt-5 py-4 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white";
+        btnText.innerText = `Ambil Swafoto & Hadir di ${o.name}`;
+      } else {
+        badge.className = badgeBase + "bg-rose-500/20 text-rose-400 border-rose-500/30";
+        alertMsg.innerText = `Jarak Anda (${currentDistance}m) melebihi radius ${o.radius}m dari ${o.name}.`;
+        alertBanner.classList.remove('hidden');
+        lockCheckIn(btn, btnText, 'Presensi Terkunci (Di Luar Jangkauan Gerai)');
+      }
+    }
+
+    let cameraStream = null;
+    async function initLiveCamera() {
+      if (cameraStream) return;
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } }, audio: false });
+        document.getElementById('liveVideo').srcObject = cameraStream;
+      } catch (err) { alert("Kamera tidak dapat diakses. Izinkan akses kamera untuk presensi."); }
+    }
+
+    async function handleDoCheckIn() {
+      const o = getSelectedOutlet();
+      const video = document.getElementById('liveVideo');
+      if (!o || currentDistance === null || !cameraStream || !video.videoWidth) { alert("Kamera/GPS belum siap."); return; }
+      const canvas = document.createElement('canvas');
+      canvas.width = 480; canvas.height = Math.round(480 * video.videoHeight / video.videoWidth);
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      showLoading(`Menyimpan presensi di ${o.name}...`);
+      try {
+        const d = await api('checkin_presensi', {
+          userId: currentUser.id, namaKaryawan: currentUser.nama, divisi: currentUser.divisi, outletId: o.id,
+          latitude: currentPos.latitude, longitude: currentPos.longitude, fotoSelfieBase64: canvas.toDataURL('image/jpeg', 0.7)
+        });
+        alert(d.message);
+        switchTab('overview');
+      } catch (err) { alert(err.message); } finally { hideLoading(); }
+    }
+
+    // Navigasi Tab (Menutup Menu Mobile Otomatis Saat Menu Dipilih & Verifikasi RBAC)
+    function switchTab(tabId) {
+      closeMobileSidebar(); // Tutup menu drawer jika di layar HP
+
+      const allowedTabs = getAllowedTabs();
+      if (!allowedTabs.includes(tabId)) {
+        tabId = 'overview';
+      }
+
+      const views = ['overview', 'attendance', 'dept-report', 'outlets', 'kpi', 'reports', 'leaves', 'employee', 'settings'];
+      views.forEach(v => {
+        const viewEl = document.getElementById('view-' + v);
+        const tabEl = document.getElementById('tab-' + v);
+        if (v === tabId) {
+          viewEl.classList.remove('hidden');
+          tabEl.className = "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-blue-400/30";
+        } else {
+          viewEl.classList.add('hidden');
+          tabEl.className = "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800/40";
+        }
+      });
+
+      if (tabId === 'attendance') { initLiveCamera(); loadOutlets().then(startGps); }
+      loadTabData(tabId);
+      lucide.createIcons();
+    }
+
+    // =========================================================================
+    // 8. KANBAN LAPORAN KERJA
+    // =========================================================================
+    const KANBAN_COLS = ['PROSES', 'HOLD', 'SELESAI'];
+    let kanbanTasks = [];
+    let pendingMove = null;
+
+    async function loadTasks() {
+      try {
+        const d = await api('get_tasks', { userId: currentUser.id, all: isMonitor() ? '1' : '0' });
+        kanbanTasks = d.data.map(t => ({ id: t.ID, userId: t.User_ID, title: t.Judul, desc: t.Deskripsi, divisi: t.Divisi, creator: t.Nama_Karyawan, col: t.Status, bukti: t.Bukti_URL, catatan: t.Catatan }));
+      } catch (err) { kanbanTasks = []; console.error(err); }
+      renderKanban();
+    }
+
+    function renderKanban() {
+      KANBAN_COLS.forEach(col => {
+        const container = document.getElementById('kanban-col-' + col.toLowerCase());
+        const filtered = kanbanTasks.filter(t => t.col === col);
+        document.getElementById('badge-' + col.toLowerCase() + '-count').innerText = filtered.length;
+        container.innerHTML = filtered.length ? filtered.map(t => {
+          const mine = currentUser && t.userId === currentUser.id;
+          const link = t.bukti && t.bukti !== '-' ? t.bukti.split(' | ').filter(u => /^https?:\/\//.test(u)).map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener" class="text-cyan-400 underline text-[10px]">Bukti ${i + 1}</a>`).join(' • ') : '';
+          const b = (cls, to, label) => `<button onclick="requestMove('${esc(t.id)}','${to}')" class="px-2 py-0.5 ${cls} rounded text-[9px]">${label}</button>`;
+          const btns = !mine ? '' : (col === 'PROSES'
+            ? b('bg-amber-600/30 hover:bg-amber-600/50 text-amber-300', 'HOLD', 'Hold ⏸') + b('bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300', 'SELESAI', 'Selesai ✓')
+            : col === 'HOLD' ? b('bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300', 'PROSES', 'Lanjut Proses ▶') + b('bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300', 'SELESAI', 'Selesai ✓') : '');
+          return `
+          <div class="p-3.5 rounded-xl bg-[#131b45] border border-slate-700/60 shadow-md">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[9px] font-bold border border-blue-500/30">${esc(t.divisi)}</span>
+              <span class="text-[10px] text-slate-400">${esc(t.creator)}</span>
+            </div>
+            <h4 class="font-bold text-xs text-white mb-1">${esc(t.title)}</h4>
+            <p class="text-[11px] text-slate-300 mb-2 line-clamp-3">${esc(t.desc)}</p>
+            ${t.catatan && t.catatan !== '-' ? `<p class="text-[10px] text-slate-400 italic mb-1">Catatan: ${esc(t.catatan)}</p>` : ''}
+            ${link ? `<div class="mb-1">${link}</div>` : ''}
+            ${btns ? `<div class="flex items-center justify-end gap-1 pt-2 border-t border-slate-800">${btns}</div>` : ''}
+          </div>`;
+        }).join('') : '<p class="text-[11px] text-slate-600 text-center py-4">Kosong</p>';
+      });
+    }
+
+    function requestMove(id, target) {
+      const task = kanbanTasks.find(t => t.id === id);
+      if (!task) return;
+      if (target === 'PROSES') { submitMove(task, target, {}); return; }
+      pendingMove = { task, target };
+      document.getElementById('buktiTaskTitle').value = task.title;
+      document.getElementById('buktiModalTitle').innerText = target === 'HOLD' ? 'Tahan Tugas (Hold) — Lampirkan Bukti' : 'Tandai Selesai — Lampirkan Bukti';
+      document.getElementById('buktiCatatan').value = '';
+      document.getElementById('buktiBuktiLink').value = '';
+      document.getElementById('buktiFile').value = '';
+      document.getElementById('buktiValidasiMsg').classList.add('hidden');
+      document.getElementById('buktiModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeBuktiModal() { document.getElementById('buktiModal').classList.add('hidden'); pendingMove = null; }
+
+    function fileToJpegBase64(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const r = Math.min(1, 1280 / Math.max(img.width, img.height));
+          const c = document.createElement('canvas'); c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL('image/jpeg', 0.75));
+        };
+        img.onerror = () => reject(new Error('File bukti bukan gambar yang valid.'));
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    async function confirmMoveWithBukti() {
+      if (!pendingMove) return;
+      const link = document.getElementById('buktiBuktiLink').value.trim();
+      const file = document.getElementById('buktiFile').files[0];
+      const validLink = /^https?:\/\/\S+$/i.test(link);
+      if (!validLink && !file) { document.getElementById('buktiValidasiMsg').classList.remove('hidden'); return; }
+      const { task, target } = pendingMove;
+      const extra = { buktiLink: validLink ? link : '', catatan: document.getElementById('buktiCatatan').value.trim() };
+      try { if (file) extra.buktiBase64 = await fileToJpegBase64(file); } catch (err) { alert(err.message); return; }
+      closeBuktiModal();
+      submitMove(task, target, extra);
+    }
+
+    async function submitMove(task, target, extra) {
+      showLoading("Memperbarui status tugas...");
+      try { await api('update_task_status', { taskId: task.id, userId: currentUser.id, status: target, ...extra }); await loadTasks(); }
+      catch (err) { alert(err.message); } finally { hideLoading(); }
+    }
+
+
+    // =========================================================================
+    // 9. PERIZINAN/CUTI
+    // =========================================================================
+    let leavesList = [];
+    const LEAVE_LABEL = { Pending: 'Menunggu', Approved: 'Disetujui', Rejected: 'Ditolak' };
+
+    async function loadLeaves() {
+      try {
+        const d = await api('get_izin_list');
+        leavesList = d.data.filter(r => isApprover() || r.User_ID === currentUser.id).map(r => ({
+          id: r.ID, user: r.Nama_Karyawan, dept: '', type: r.Tipe, date: r.Tanggal_Mulai === r.Tanggal_Selesai ? r.Tanggal_Mulai : `${r.Tanggal_Mulai} s/d ${r.Tanggal_Selesai}`,
+          reason: r.Alasan, status: LEAVE_LABEL[r.Status_Approval] || r.Status_Approval, approvedBy: r.Approved_By_HRD !== '-' ? r.Approved_By_HRD : ''
+        }));
+      } catch (err) { leavesList = []; console.error(err); }
+      renderLeavesTable();
+    }
+
+    function renderLeavesTable() {
+      const tbody = document.getElementById('leavesTableBody');
+      if (!tbody) return;
+      const approver = isApprover();
+      const thAction = document.getElementById('leavesActionTh');
+      if (thAction) thAction.innerText = approver ? 'TINDAKAN HRD (APPROVAL)' : 'STATUS KEPUTUSAN HRD';
+      if (!leavesList.length) { tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-slate-500">Belum ada pengajuan.</td></tr>'; return; }
+      tbody.innerHTML = leavesList.map(l => {
+        let badgeClass = 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+        if (l.status === 'Disetujui') badgeClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+        if (l.status === 'Ditolak') badgeClass = 'bg-rose-500/20 text-rose-400 border-rose-500/30';
+        let actionCell;
+        if (approver && l.status === 'Menunggu') {
+          actionCell = `<button onclick="respondLeave('${esc(l.id)}','Approved')" class="px-2.5 py-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded text-[10px] font-bold mr-1">Setujui ✓</button><button onclick="respondLeave('${esc(l.id)}','Rejected')" class="px-2.5 py-1 bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 rounded text-[10px] font-bold">Tolak ✕</button>`;
+        } else if (l.status === 'Menunggu') {
+          actionCell = `<span class="text-[10px] text-amber-400 italic">⏳ Menunggu Persetujuan HRD</span>`;
+        } else {
+          actionCell = `<span class="text-slate-400 text-[10px]">${l.approvedBy ? 'Oleh: ' + esc(l.approvedBy) : esc(l.status)}</span>`;
+        }
+        return `<tr class="hover:bg-slate-800/30 transition">
+          <td class="py-3 font-bold text-white">${esc(l.user)}</td>
+          <td class="py-3"><span class="px-2 py-0.5 rounded bg-blue-500/20 text-cyan-300 font-bold text-[10px]">${esc(l.type)}</span></td>
+          <td class="py-3 text-slate-300">${esc(l.date)}</td>
+          <td class="py-3 text-slate-300">${esc(l.reason)}</td>
+          <td class="py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">${esc(l.status)}</span></td>
+          <td class="py-3 text-right">${actionCell}</td></tr>`;
+      }).join('');
+    }
+
+
+    async function respondLeave(id, statusApproval) {
+      if (!confirm(statusApproval === 'Approved' ? 'Setujui pengajuan ini?' : 'Tolak pengajuan ini?')) return;
+      try { await api('respond_izin', { izinId: id, statusApproval, hrdName: currentUser.nama }); await loadLeaves(); } catch (err) { alert(err.message); }
+    }
+
+    // =========================================================================
+    // 10. KARYAWAN, DASBOR, PENGATURAN
+    // =========================================================================
+    async function loadUsers() {
+      const tbody = document.getElementById('usersTableBody');
+      try {
+        const d = await api('get_users');
+        tbody.innerHTML = d.data.length ? d.data.map(u => {
+          const active = u.Status === 'Active';
+          return `<tr class="hover:bg-slate-800/30">
+            <td class="py-3 font-mono text-cyan-400">${esc(u.ID)}</td><td class="py-3 font-bold text-white">${esc(u.Nama)}</td>
+            <td class="py-3 text-slate-300">${esc(u.Email)}</td><td class="py-3 text-slate-300">${esc(u.Role)}</td><td class="py-3 text-slate-300">${esc(u.Divisi)}</td>
+            <td class="py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${active ? 'Aktif' : 'Menunggu Verifikasi'}</span></td>
+            <td class="py-3 text-right">${u.Role === 'Super Admin' ? '<span class="text-slate-500">-</span>' : `<button onclick="setUserStatus('${esc(u.ID)}','${active ? 'Pending' : 'Active'}')" class="px-3 py-1 ${active ? 'bg-rose-600/40' : 'bg-emerald-600'} text-white rounded text-[10px] font-bold">${active ? 'Nonaktifkan' : 'Aktifkan Akun'}</button>`}</td></tr>`;
+        }).join('') : '<tr><td colspan="7" class="py-6 text-center text-slate-500">Belum ada karyawan.</td></tr>';
+      } catch (err) { tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-rose-400">${esc(err.message)}</td></tr>`; }
+    }
+
+    async function setUserStatus(userId, status) {
+      try { await api('approve_user', { userId, status }); await loadUsers(); } catch (err) { alert(err.message); }
+    }
+
+    async function loadDashboard() {
+      try {
+        const m = (await api('get_dashboard_summary', { tanggal: todayStr() })).data;
+        document.getElementById('stat-total').innerText = m.metrics.totalEmployees;
+        document.getElementById('stat-present').innerText = m.metrics.present.count;
+        document.getElementById('stat-absent').innerText = m.metrics.absent.count;
+        document.getElementById('stat-late').innerText = m.metrics.late.count;
+        document.getElementById('stat-leave').innerText = m.metrics.leave.count;
+        document.getElementById('recentTableBody').innerHTML = m.recentAttendance.length ? m.recentAttendance.map(r => `<tr>
+          <td class="py-2 text-slate-300">${esc(r.User_ID)}</td><td class="py-2 font-bold text-white">${esc(r.Nama_Karyawan)}</td><td class="py-2 text-cyan-300">${esc(r.Lokasi_Gerai)}</td>
+          <td class="py-2 text-slate-300">${esc(r.Divisi)}</td><td class="py-2 ${r.Status_Kehadiran === 'Late' ? 'text-amber-400' : 'text-emerald-400'} font-bold">${r.Status_Kehadiran === 'Late' ? 'Terlambat' : 'Hadir'}</td><td class="py-2 text-slate-300">${esc(r.Jam_Masuk)}</td></tr>`).join('')
+          : '<tr><td colspan="6" class="py-6 text-center text-slate-500 text-xs">Belum ada presensi hari ini.</td></tr>';
+      } catch (err) { console.error(err); }
+    }
+
+    async function loadMyHistory() {
+      const tbody = document.getElementById('empHistoryBody');
+      try {
+        const rows = (await api('get_presensi_history', { userId: currentUser.id })).data;
+        tbody.innerHTML = rows.length ? rows.map(r => `<tr class="hover:bg-slate-800/30">
+          <td class="py-3 font-semibold text-white">${esc(r.Tanggal)}</td><td class="py-3 text-slate-300">${esc(r.Lokasi_Gerai)}</td>
+          <td class="py-3 font-mono text-emerald-400 font-bold">${esc(r.Jam_Masuk)}</td><td class="py-3 font-mono text-cyan-400">${esc(r.Distance_Meters)} meter</td>
+          <td class="py-3"><span class="px-2 py-0.5 rounded bg-blue-500/20 text-cyan-300 text-[10px] font-bold">Kamera Live + GPS</span></td>
+          <td class="py-3 ${r.Status_Kehadiran === 'Late' ? 'text-amber-400' : 'text-emerald-400'} font-bold">${r.Status_Kehadiran === 'Late' ? 'Terlambat' : 'Tepat Waktu'}</td></tr>`).join('')
+          : '<tr><td colspan="6" class="py-6 text-center text-slate-500">Belum ada riwayat presensi.</td></tr>';
+      } catch (err) { console.error(err); }
+    }
+
+    async function loadSettings() {
+      try {
+        const d = (await api('get_settings')).data;
+        document.getElementById('setCompany').value = d.namaPerusahaan;
+        document.getElementById('setWorkStart').value = d.workStartTime;
+        document.getElementById('setMaxRadius').value = d.defaultMaxRadius;
+      } catch (err) { console.error(err); }
+    }
+
+    async function saveSettings(e) {
+      e.preventDefault();
+      showLoading("Menyimpan pengaturan...");
+      try {
+        const d = await api('update_settings', { namaPerusahaan: document.getElementById('setCompany').value.trim(), workStartTime: document.getElementById('setWorkStart').value, defaultMaxRadius: document.getElementById('setMaxRadius').value });
+        alert(d.message);
+      } catch (err) { alert(err.message); } finally { hideLoading(); }
+    }
+
+    // ===== MODAL FORMULIR UMUM =====
+    let formCfg = null;
+    function openFormModal(cfg) {
+      formCfg = cfg;
+      document.getElementById('formModalTitle').innerText = cfg.title;
+      document.getElementById('formModalSubmit').innerText = cfg.submitText || 'Simpan';
+      document.getElementById('formModalError').classList.add('hidden');
+      const cls = "w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400";
+      document.getElementById('formModalFields').innerHTML = cfg.fields.map(f => {
+        const common = `id="ff_${f.id}" ${f.required ? 'required' : ''} class="${cls}"`;
+        let input;
+        if (f.type === 'textarea') input = `<textarea ${common} rows="3" placeholder="${esc(f.placeholder || '')}">${esc(f.value || '')}</textarea>`;
+        else if (f.type === 'select') input = `<select ${common}>${f.options.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
+        else if (f.type === 'file') input = `<input type="file" id="ff_${f.id}" accept="image/*" class="w-full text-[11px] text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-800 file:text-cyan-300">`;
+        else input = `<input type="${f.type || 'text'}" ${common} value="${esc(f.value || '')}" placeholder="${esc(f.placeholder || '')}" ${f.type === 'password' ? 'autocomplete="new-password"' : ''}>`;
+        return `<div><label class="block text-slate-300 font-semibold mb-1">${esc(f.label)}${f.required ? ' <span class="text-rose-400">*</span>' : ''}</label>${input}</div>`;
+      }).join('');
+      document.getElementById('formModal').classList.remove('hidden');
+      const first = cfg.fields[0]; if (first && first.type !== 'file') document.getElementById('ff_' + first.id).focus();
+    }
+    function closeFormModal() { document.getElementById('formModal').classList.add('hidden'); formCfg = null; }
+    document.getElementById('formModalForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!formCfg) return;
+      const vals = {};
+      formCfg.fields.forEach(f => { const el = document.getElementById('ff_' + f.id); vals[f.id] = f.type === 'file' ? (el.files[0] || null) : el.value.trim(); });
+      const btn = document.getElementById('formModalSubmit'), errEl = document.getElementById('formModalError');
+      btn.disabled = true; errEl.classList.add('hidden');
+      try { await formCfg.onSubmit(vals); closeFormModal(); }
+      catch (err) { errEl.innerText = err.message; errEl.classList.remove('hidden'); }
+      finally { btn.disabled = false; }
+    });
+
+    function openNewTaskModal() {
+      openFormModal({
+        title: 'Buat Laporan Kerja Baru', submitText: 'Simpan',
+        fields: [{ id: 'judul', label: 'Judul pekerjaan', required: true, placeholder: 'Contoh: Cek stok bahan baku' },
+                 { id: 'desk', label: 'Rincian', type: 'textarea', placeholder: 'Apa yang dikerjakan...' }],
+        onSubmit: async (v) => { await api('save_task', { judul: v.judul, deskripsi: v.desk || '-' }); await loadTasks(); }
+      });
+    }
+
+    function openNewLeaveModal() {
+      openFormModal({
+        title: 'Ajukan Izin / Cuti', submitText: 'Ajukan',
+        fields: [{ id: 'tipe', label: 'Jenis', type: 'select', options: ['Cuti Tahunan', 'Sakit', 'Izin', 'Pulang Awal'] },
+                 { id: 'alasan', label: 'Alasan', type: 'textarea', required: true },
+                 { id: 'mulai', label: 'Tanggal mulai', type: 'date', value: todayStr(), required: true },
+                 { id: 'selesai', label: 'Tanggal selesai', type: 'date', value: todayStr(), required: true },
+                 { id: 'lampiran', label: 'Lampiran foto (surat dokter, opsional)', type: 'file' }],
+        onSubmit: async (v) => {
+          if (v.selesai < v.mulai) throw new Error('Tanggal selesai tidak boleh sebelum tanggal mulai.');
+          const body = { tipe: v.tipe, alasan: v.alasan, tanggalMulai: v.mulai, tanggalSelesai: v.selesai };
+          if (v.lampiran) body.lampiranBase64 = await fileToJpegBase64(v.lampiran);
+          const d = await api('submit_izin', body);
+          await loadLeaves(); alert(d.message);
+        }
+      });
+    }
+
+    function openChangePassword() {
+      openFormModal({
+        title: 'Ganti Sandi', submitText: 'Ganti Sandi',
+        fields: [{ id: 'lama', label: 'Sandi lama', type: 'password', required: true },
+                 { id: 'baru', label: 'Sandi baru (min. 6 karakter)', type: 'password', required: true },
+                 { id: 'ulang', label: 'Ulangi sandi baru', type: 'password', required: true }],
+        onSubmit: async (v) => {
+          if (v.baru.length < 6) throw new Error('Sandi baru minimal 6 karakter.');
+          if (v.baru !== v.ulang) throw new Error('Ulangi sandi tidak sama.');
+          const d = await api('change_password', { oldPassword: v.lama, newPassword: v.baru });
+          alert(d.message); doLogout();
+        }
+      });
+    }
+
+    function loadTabData(tab) {
+      if (!currentUser) return;
+      if (tab === 'overview') { isMonitor() ? loadDashboard() : loadMyHistory(); }
+      else if (tab === 'dept-report') loadDeptReport();
+      else if (tab === 'outlets') loadOutlets();
+      else if (tab === 'kpi') loadKpi();
+      else if (tab === 'reports') loadTasks();
+      else if (tab === 'leaves') loadLeaves();
+      else if (tab === 'employee') loadUsers();
+      else if (tab === 'settings') loadSettings();
+    }
+
+    function showLoading(msg) {
+      document.getElementById('loadingStatusText').innerText = msg;
+      const ls = document.getElementById('loadingScreen');
+      ls.style.display = 'flex';
+      ls.style.opacity = '1';
+    }
+
+    function hideLoading() {
+      const ls = document.getElementById('loadingScreen');
+      ls.style.opacity = '0';
+      setTimeout(() => { ls.style.display = 'none'; }, 400);
+    }
+
+    function reloadDashboardData() { loadTabData('overview'); }
+
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+    // Inisialisasi Aplikasi Saat Memuat Halaman
+    window.addEventListener('load', () => {
+      renderKpiTable();
+      renderKanban();
+      renderLeavesTable();
+      checkAuthSession(); // Periksa status login & terapkan aturan RBAC
+      setTimeout(hideLoading, 1400);
+    });
+  </script>
+</body>
+</html>
