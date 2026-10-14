@@ -28,7 +28,7 @@ Aplikasi Web App internal perusahaan berbasis **PWA (Progressive Web App)** deng
 1. Buat Google Spreadsheet baru di Google Drive Anda.
 2. Buka menu **Extensions** > **Apps Script**.
 3. Salin dan tempelkan seluruh isi berkas `Code.gs` ke editor Google Apps Script.
-4. Simpan (`Ctrl + S`), lalu pilih fungsi `initDatabase` dan klik **Run** sekali untuk membuat seluruh tab tabel secara otomatis.
+4. Simpan (`Ctrl + S`), lalu pilih fungsi `initDatabase` dan klik **Run** sekali untuk membuat seluruh tab tabel secara otomatis. Sandi Super Admin awal (`admin@chickencrush.local`) acak dan hanya tampil sekali di **Execution log** — catat, login, lalu ganti email/sandi di Spreadsheet (tab `Users`, sandi disimpan sebagai hash SHA-256).
 5. Klik **Deploy** > **New deployment** > Pilih tipe **Web app**:
    - **Execute as**: *Me (email akun Anda)*
    - **Who has access**: *Anyone*
@@ -36,7 +36,7 @@ Aplikasi Web App internal perusahaan berbasis **PWA (Progressive Web App)** deng
 
 ### 2. Jalankan Frontend PWA
 1. Buka berkas `index.html` langsung di peramban (Google Chrome / Microsoft Edge / Safari).
-2. Hubungkan URL Web App Apps Script pada formulir pengaturan atau konstanta API.
+2. Tempel URL Web App Apps Script (`.../exec`) ke konstanta `API_URL` di `index.html`. Setiap mengubah `Code.gs`, buat **New deployment** (atau Manage deployments > edit > New version).
 3. Untuk meng-host secara gratis:
    - Aktifkan **GitHub Pages** pada repositori ini (Settings > Pages > Deploy from branch `main` / root).
    - Atau deploy ke **Vercel / Netlify / Cloudflare Pages** hanya dengan menghubungkan repositori GitHub ini.
